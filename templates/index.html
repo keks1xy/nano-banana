@@ -10,106 +10,180 @@
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <style>
+    :root {
+      --bg: #0b0d14;
+      --card: #121623;
+      --muted: #9ca3af;
+      --accent: #7c3aed;
+      --accent-2: #22c55e;
+      --border: #1f2430;
+    }
+    * { box-sizing:border-box; }
     body {
-      background:#0f1115;
-      color:#e5e7eb;
-      font-family:Inter,sans-serif;
       margin:0;
-    }
-    .container {
-      max-width:980px;
-      margin:0 auto;
-      padding:32px;
-    }
-    textarea {
-      width:100%;
-      min-height:90px;
-      background:#161a22;
-      border:1px solid #222631;
-      border-radius:14px;
-      padding:14px;
-      color:#fff;
-    }
-    select,button {
-      background:#161a22;
-      color:#fff;
-      border:1px solid #222631;
-      border-radius:10px;
-      padding:10px 14px;
-    }
-    button.primary {
-      background:#6366f1;
-      border:none;
-      cursor:pointer;
-    }
-    .row {
+      font-family:Inter,sans-serif;
+      color:#e5e7eb;
+      background:radial-gradient(circle at 20% 20%, rgba(124,58,237,.15), transparent 35%),
+                 radial-gradient(circle at 80% 30%, rgba(34,197,94,.15), transparent 40%),
+                 radial-gradient(circle at 50% 80%, rgba(59,130,246,.18), transparent 35%),
+                 #05070d;
+      min-height:100vh;
       display:flex;
-      gap:12px;
-      margin-top:12px;
-      align-items:center;
-      flex-wrap:wrap;
+      flex-direction:column;
     }
-    .status { margin-top:10px; color:#9ca3af; }
+    .hero {
+      position:relative;
+      padding:32px 24px 120px;
+      text-align:center;
+      overflow:hidden;
+    }
+    .hero::after {
+      content:'';
+      position:absolute;
+      inset:0;
+      background:linear-gradient(180deg, rgba(5,7,13,0) 0%, rgba(5,7,13,.85) 100%);
+      pointer-events:none;
+    }
+    .title {
+      font-size:36px;
+      font-weight:700;
+      letter-spacing:0.3px;
+      margin:0;
+      position:relative;
+      z-index:1;
+    }
+    .sub {
+      margin:10px 0 0;
+      color:var(--muted);
+      position:relative;
+      z-index:1;
+    }
+    .gallery-wrap {
+      padding:0 24px;
+      margin-top:-80px;
+      position:relative;
+      z-index:2;
+    }
     .gallery {
       display:grid;
-      grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-      gap:16px;
-      margin-top:20px;
-    }
-    .history {
-      margin-top:32px;
-    }
-    .history h2 {
-      margin:0 0 12px 0;
-      font-size:18px;
-      color:#cbd5e1;
+      grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+      gap:12px;
+      background:#060910aa;
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:14px;
+      backdrop-filter:blur(3px);
     }
     .card {
       position:relative;
-      background:#161a22;
+      background:var(--card);
       border-radius:14px;
       overflow:hidden;
+      border:1px solid #1e2432;
     }
     .card img {
       width:100%;
+      display:block;
       cursor:pointer;
     }
     .select {
       position:absolute;
       top:10px;
       left:10px;
-      transform:scale(1.3);
+      transform:scale(1.2);
     }
     .download {
       position:absolute;
       right:10px;
       bottom:10px;
-      background:rgba(0,0,0,.6);
+      background:rgba(0,0,0,.55);
       padding:6px 10px;
-      border-radius:8px;
+      border-radius:10px;
       color:#fff;
       text-decoration:none;
+      border:1px solid rgba(255,255,255,.08);
     }
-    .modal {
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.9);
-      display:none;
+    .fav-btn {
+      position:absolute;
+      top:10px;
+      right:44px;
+      background:rgba(0,0,0,.55);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:10px;
+      width:34px;
+      height:34px;
+      display:flex;
       align-items:center;
       justify-content:center;
-      z-index:999;
+      cursor:pointer;
+      color:#fbbf24;
     }
-    .modal img {
-      max-width:90%;
-      max-height:90%;
-      border-radius:14px;
+    .panel {
+      position:sticky;
+      bottom:0;
+      padding:16px 24px 26px;
+      background:rgba(8,11,18,0.9);
+      backdrop-filter:blur(10px);
+      border-top:1px solid var(--border);
+      z-index:5;
     }
-    .modal.show { display:flex; }
+    form {
+      display:flex;
+      gap:16px;
+      flex-wrap:wrap;
+      align-items:flex-start;
+      justify-content:center;
+      max-width:1100px;
+      margin:0 auto;
+    }
+    .controls {
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .row {
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    select, button {
+      background:var(--card);
+      color:#fff;
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:10px 14px;
+    }
+    button.primary {
+      background:linear-gradient(135deg,#a855f7,#6366f1);
+      border:none;
+      cursor:pointer;
+      font-weight:700;
+      padding:12px 16px;
+    }
+    .prompt-area {
+      flex:1;
+      min-width:280px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    textarea {
+      width:100%;
+      min-height:120px;
+      background:#0d111b;
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px;
+      color:#fff;
+      resize:vertical;
+    }
+    .status { color:var(--muted); }
     .ref-row {
       display:flex;
       align-items:center;
       gap:12px;
-      margin-top:12px;
       flex-wrap:wrap;
     }
     .ref-label {
@@ -131,7 +205,6 @@
       border:1px solid #222631;
       background-size:cover;
       background-position:center;
-      position:relative;
     }
     .add-ref {
       display:flex;
@@ -151,6 +224,32 @@
       background:#1f2430;
       color:#60a5fa;
       border-color:#60a5fa;
+    }
+    .error {
+      color:#f87171;
+      font-weight:600;
+      margin-top:6px;
+    }
+    .tabs {
+      display:flex;
+      gap:8px;
+      margin-top:18px;
+    }
+    .tab {
+      padding:8px 12px;
+      border:1px solid var(--border);
+      background:#0d111b;
+      border-radius:10px;
+      color:#e5e7eb;
+      cursor:pointer;
+    }
+    .tab.active {
+      border-color:#6366f1;
+      color:#c7d2fe;
+      background:rgba(99,102,241,0.12);
+    }
+    .history {
+      margin-top:18px;
     }
     .history-grid {
       display:grid;
@@ -180,55 +279,98 @@
       font-size:12px;
       line-height:1.4;
     }
+    .favorites-empty {
+      color:var(--muted);
+      margin-top:10px;
+    }
+    .modal {
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.9);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:999;
+    }
+    .modal img {
+      max-width:90%;
+      max-height:90%;
+      border-radius:14px;
+    }
+    .modal.show { display:flex; }
   </style>
 </head>
 
 <body>
-<div class="container">
+<div class="hero">
+  <h1 class="title">Nano Banana 🍌</h1>
+  <p class="sub">Generate, keep your refs, and favorite the best shots</p>
+</div>
 
-<h1>Nano Banana 🍌</h1>
+<div class="gallery-wrap">
+  <div id="images" class="gallery"></div>
+</div>
 
-<form method="post" enctype="multipart/form-data">
-  <textarea name="prompt" placeholder="Describe what you want to generate..."></textarea>
+<div class="panel">
+  <form method="post" enctype="multipart/form-data" id="gen-form">
+    <input type="hidden" id="stored_refs" name="stored_refs">
+    <div class="controls">
+      <div class="row">
+        <select name="format" id="format">
+          <option>1:1</option>
+          <option>4:3</option>
+          <option>16:9</option>
+          <option>3:2</option>
+          <option>2:3</option>
+          <option>9:16</option>
+          <option>5:4</option>
+          <option>4:5</option>
+          <option>7:4</option>
+          <option>4:7</option>
+          <option>5:3</option>
+          <option>3:5</option>
+          <option>21:9</option>
+          <option>9:21</option>
+          <option>2:1</option>
+          <option>1:2</option>
+          <option>3:1</option>
+          <option>1:3</option>
+          <option>5:2</option>
+        </select>
+        <button type="button" onclick="downloadSelected()">📦 Download selected</button>
+      </div>
+      {% if status %}
+      <div class="status">Status: <span id="status">{{ status }}</span></div>
+      {% endif %}
+    </div>
 
-  <div class="ref-row">
-    <div class="ref-label">References</div>
-    <div id="ref-previews" class="ref-previews"></div>
-    <button type="button" class="add-ref" onclick="document.getElementById('references').click()">+</button>
-    <input id="references" type="file" name="references" accept="image/*" multiple style="display:none">
+    <div class="prompt-area">
+      <div class="ref-row">
+        <div class="ref-label">References</div>
+        <div id="ref-previews" class="ref-previews"></div>
+        <button type="button" class="add-ref" onclick="document.getElementById('references').click()">+</button>
+        <input id="references" type="file" name="references" accept="image/*" multiple style="display:none">
+      </div>
+
+      <textarea name="prompt" id="prompt" placeholder="Describe what you want to generate... (минимум 10 символов)"></textarea>
+      {% if error %}
+        <div class="error">{{ error }}</div>
+      {% endif %}
+      <div style="display:flex; gap:10px; justify-content:flex-end; align-items:center;">
+        <button class="primary">Generate</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-history" onclick="switchTab('history')">История</button>
+    <button class="tab" id="tab-fav" onclick="switchTab('fav')">Избранные</button>
   </div>
-
-  <div class="row">
-    <select name="format">
-      <option>1:1</option>
-      <option>4:3</option>
-      <option>16:9</option>
-      <option>3:2</option>
-      <option>2:3</option>
-      <option>9:16</option>
-    </select>
-
-    <button class="primary">Generate</button>
+  <div class="history">
+    <div id="history-grid" class="history-grid"></div>
+    <div id="favorites-grid" class="history-grid" style="display:none;"></div>
+    <div id="favorites-empty" class="favorites-empty" style="display:none;">Пока нет избранных изображений</div>
   </div>
-</form>
-
-{% if status %}
-<div class="status">
-  Status: <span id="status">{{ status }}</span>
-</div>
-{% endif %}
-
-<div class="row" style="margin-top:20px">
-  <button onclick="downloadSelected()">📦 Download selected</button>
-</div>
-
-<div id="images" class="gallery"></div>
-
-<div class="history">
-  <h2>История генераций</h2>
-  <div id="history-grid" class="history-grid"></div>
-</div>
-
 </div>
 
 <div id="modal" class="modal" onclick="closeModal()">
@@ -239,9 +381,25 @@
 const jobId = "{{ job_id }}";
 const initialHistory = {{ history|tojson }};
 const serverReferences = {{ references|tojson }};
+const errorMessage = "{{ error or '' }}";
 
 const refInput = document.getElementById("references");
 const refPreviews = document.getElementById("ref-previews");
+const storedRefsInput = document.getElementById("stored_refs");
+const promptInput = document.getElementById("prompt");
+
+function loadSavedRefs() {
+  const saved = localStorage.getItem("nb_refs");
+  if (saved) {
+    try { return JSON.parse(saved); } catch { return []; }
+  }
+  return [];
+}
+
+function saveRefs(list) {
+  localStorage.setItem("nb_refs", JSON.stringify(list));
+  storedRefsInput.value = JSON.stringify(list);
+}
 
 function renderReferencePreviews(list) {
   if (!refPreviews) return;
@@ -262,18 +420,29 @@ function renderReferencePreviews(list) {
   }
 }
 
+function mergeInitialRefs() {
+  const saved = loadSavedRefs();
+  const merged = (serverReferences && serverReferences.length) ? serverReferences : saved;
+  saveRefs(merged);
+  renderReferencePreviews(merged);
+}
+
 if (refInput) {
   refInput.addEventListener("change", () => {
-    const previews = [...refInput.files].map(file => ({
+    const current = loadSavedRefs();
+    const uploads = [...refInput.files].map(file => ({
       name: file.name,
       previewUrl: URL.createObjectURL(file)
     }));
-    renderReferencePreviews(previews);
+    const updated = [...current, ...uploads];
+    saveRefs(updated);
+    renderReferencePreviews(updated);
   });
 }
 
-renderReferencePreviews(serverReferences);
+mergeInitialRefs();
 renderHistory(initialHistory);
+renderFavorites();
 
 async function checkStatus() {
   if (!jobId) return;
@@ -303,6 +472,11 @@ function renderImages(images) {
     cb.className = "select";
     cb.value = url;
 
+    const fav = document.createElement("button");
+    fav.className = "fav-btn";
+    fav.innerText = isFavorite(url) ? "★" : "☆";
+    fav.onclick = (e) => { e.preventDefault(); toggleFavorite(url); fav.innerText = isFavorite(url) ? "★" : "☆"; };
+
     const img = document.createElement("img");
     img.src = url;
     img.onclick = () => openModal(url);
@@ -313,7 +487,7 @@ function renderImages(images) {
     dl.className = "download";
     dl.innerText = "⬇";
 
-    card.append(cb,img,dl);
+    card.append(cb,fav,img,dl);
     el.appendChild(card);
   });
 }
@@ -343,7 +517,14 @@ function renderHistory(items) {
     meta.className = "history-meta";
     meta.innerText = entry.prompt || "Без промпта";
 
-    card.append(img, meta);
+    const fav = document.createElement("button");
+    fav.className = "fav-btn";
+    fav.style.top = "8px";
+    fav.style.right = "8px";
+    fav.innerText = isFavorite(entry.url) ? "★" : "☆";
+    fav.onclick = (e) => { e.preventDefault(); toggleFavorite(entry.url); fav.innerText = isFavorite(entry.url) ? "★" : "☆"; renderFavorites(); };
+
+    card.append(img, meta, fav);
     container.appendChild(card);
   });
 }
@@ -374,10 +555,105 @@ function closeModal() {
   document.getElementById("modal").classList.remove("show");
 }
 
+function switchTab(tab) {
+  const histBtn = document.getElementById("tab-history");
+  const favBtn = document.getElementById("tab-fav");
+  const histGrid = document.getElementById("history-grid");
+  const favGrid = document.getElementById("favorites-grid");
+  const favEmpty = document.getElementById("favorites-empty");
+
+  if (tab === "history") {
+    histBtn.classList.add("active");
+    favBtn.classList.remove("active");
+    histGrid.style.display = "grid";
+    favGrid.style.display = "none";
+    favEmpty.style.display = "none";
+  } else {
+    histBtn.classList.remove("active");
+    favBtn.classList.add("active");
+    histGrid.style.display = "none";
+    renderFavorites();
+    favGrid.style.display = "grid";
+  }
+}
+
+function loadFavorites() {
+  const raw = localStorage.getItem("nb_favs");
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
+function saveFavorites(list) {
+  localStorage.setItem("nb_favs", JSON.stringify(list));
+}
+
+function isFavorite(url) {
+  return loadFavorites().includes(url);
+}
+
+function toggleFavorite(url) {
+  const favs = loadFavorites();
+  if (favs.includes(url)) {
+    saveFavorites(favs.filter(x => x !== url));
+  } else {
+    favs.push(url);
+    saveFavorites(favs);
+  }
+  renderFavorites();
+}
+
+function renderFavorites() {
+  const favGrid = document.getElementById("favorites-grid");
+  const favEmpty = document.getElementById("favorites-empty");
+  if (!favGrid) return;
+  const favs = loadFavorites();
+  favGrid.innerHTML = "";
+  if (!favs.length) {
+    favEmpty.style.display = "block";
+    favGrid.style.display = "none";
+    return;
+  }
+  favEmpty.style.display = "none";
+  favGrid.style.display = "grid";
+
+  favs.forEach(url => {
+    const card = document.createElement("div");
+    card.className = "history-card";
+    const img = document.createElement("img");
+    img.src = url;
+    img.alt = "favorite";
+    const meta = document.createElement("div");
+    meta.className = "history-meta";
+    meta.innerText = "Избранное";
+    const fav = document.createElement("button");
+    fav.className = "fav-btn";
+    fav.style.top = "8px";
+    fav.style.right = "8px";
+    fav.innerText = "★";
+    fav.onclick = (e) => { e.preventDefault(); toggleFavorite(url); };
+    card.append(img, meta, fav);
+    favGrid.appendChild(card);
+  });
+}
+
+document.getElementById("gen-form").addEventListener("submit", (e) => {
+  const val = (promptInput.value || "").trim();
+  if (val.length < 10) {
+    e.preventDefault();
+    alert("Промпт должен содержать минимум 10 символов");
+    return false;
+  }
+  storedRefsInput.value = localStorage.getItem("nb_refs") || "[]";
+});
+
 if (jobId) {
   checkStatus();
 } else {
   refreshHistory();
+}
+
+if (errorMessage) {
+  storedRefsInput.value = localStorage.getItem("nb_refs") || "[]";
 }
 </script>
 
