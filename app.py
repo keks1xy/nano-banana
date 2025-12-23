@@ -1,11 +1,13 @@
 from flask import Flask, request, render_template
+import base64
 import threading
 import time
 import uuid
 
 app = Flask(__name__)
 
-jobs = {}  # job_id -> dict
+jobs = {}      # job_id -> dict
+history = []   # list of completed jobs
 
 
 def worker(job_id, prompt, format):
@@ -21,6 +23,16 @@ def worker(job_id, prompt, format):
 
         jobs[job_id]["status"] = "done"
         jobs[job_id]["images"] = images
+        history.append(
+            {
+                "job_id": job_id,
+                "prompt": prompt,
+                "format": format,
+                "images": images,
+                "references": jobs[job_id].get("references", []),
+                "status": jobs[job_id]["status"],
+            }
+        )
 
     except Exception:
         jobs[job_id]["status"] = "error"
@@ -31,15 +43,33 @@ def worker(job_id, prompt, format):
 def home():
     job_id = None
     status = None
+    references = []
 
     if request.method == "POST":
         prompt = request.form.get("prompt")
         format = request.form.get("format")
+        files = request.files.getlist("references")
+
+        for file in files:
+            if not file:
+                continue
+
+            encoded = base64.b64encode(file.read()).decode("utf-8")
+            mime = file.mimetype or "application/octet-stream"
+            references.append(
+                {
+                    "name": file.filename or "reference",
+                    "data_url": f"data:{mime};base64,{encoded}",
+                }
+            )
 
         job_id = str(uuid.uuid4())
         jobs[job_id] = {
             "status": "queued",
-            "images": []
+            "images": [],
+            "prompt": prompt or "",
+            "format": format or "",
+            "references": references,
         }
 
         t = threading.Thread(
@@ -55,7 +85,9 @@ def home():
     return render_template(
         "index.html",
         job_id=job_id,
-        status=status
+        status=status,
+        references=references,
+        history=history,
     )
 
 
@@ -68,8 +100,16 @@ def job_status(job_id):
 
     return {
         "status": job["status"],
-        "images": job.get("images", [])
+        "images": job.get("images", []),
+        "prompt": job.get("prompt", ""),
+        "format": job.get("format", ""),
+        "references": job.get("references", []),
     }
+
+
+@app.route("/history")
+def job_history():
+    return {"history": history}
 
 
 if __name__ == "__main__":
