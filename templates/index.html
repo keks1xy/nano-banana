@@ -4,13 +4,23 @@
   <meta charset="utf-8">
   <title>Nano Banana</title>
 
+  <!-- JSZip -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
   <style>
+    body { font-family: sans-serif; }
+
+    .controls {
+      margin: 10px 0;
+    }
+
     .gallery {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 16px;
-      margin-top: 20px;
-      max-width: 800px;
+      margin-top: 15px;
+      max-width: 900px;
     }
 
     .image-card {
@@ -21,19 +31,29 @@
       width: 100%;
       border-radius: 12px;
       cursor: pointer;
-      display: block;
     }
 
-    .image-card a.download {
+    .download {
       position: absolute;
-      right: 10px;
-      bottom: 10px;
-      background: rgba(0,0,0,0.7);
+      right: 8px;
+      bottom: 8px;
+      background: rgba(0,0,0,0.75);
       color: white;
-      text-decoration: none;
       padding: 6px 10px;
       border-radius: 8px;
+      text-decoration: none;
       font-size: 14px;
+    }
+
+    .history {
+      margin-top: 30px;
+      max-width: 900px;
+    }
+
+    .history-item {
+      margin-bottom: 25px;
+      border-top: 1px solid #ddd;
+      padding-top: 15px;
     }
 
     /* Модалка */
@@ -53,105 +73,153 @@
       border-radius: 12px;
     }
 
-    .modal.show {
-      display: flex;
-    }
+    .modal.show { display: flex; }
   </style>
 </head>
 
 <body>
 
-  <h1>Nano Banana 🍌</h1>
+<h1>Nano Banana 🍌</h1>
 
-  <form method="post">
-    <input name="prompt" placeholder="Введите текст" style="width:300px">
-    <button type="submit">Отправить</button>
-  </form>
+<form method="post">
+  <input name="prompt" placeholder="Введите текст" style="width:300px">
 
-  {% if status %}
-  <p>
-    <b>Статус:</b>
-    <span id="status">
-      {% if status == "queued" %}
-        в очереди ⏳
-      {% elif status == "processing" %}
-        в обработке ⚙️
-      {% elif status == "done" %}
-        готово ✅
-      {% endif %}
-    </span>
-  </p>
-  {% endif %}
+  <select name="format">
+    <option value="1:1">1:1</option>
+    <option value="4:3">4:3</option>
+    <option value="16:9">16:9</option>
+  </select>
 
-  <div id="images" class="gallery"></div>
+  <button type="submit">Отправить</button>
+</form>
 
-  <!-- МОДАЛКА -->
-  <div id="modal" class="modal" onclick="closeModal()">
-    <img id="modal-img">
-  </div>
+{% if status %}
+<p><b>Статус:</b> <span id="status">{{ status }}</span></p>
+{% endif %}
 
-  {% if job_id %}
-  <script>
-    const jobId = "{{ job_id }}";
+<button onclick="downloadAll()" style="margin-top:10px">⬇ Скачать всё</button>
 
-    async function checkStatus() {
-      const res = await fetch(`/status/${jobId}`);
-      const data = await res.json();
+<div id="images" class="gallery"></div>
 
-      const statusEl = document.getElementById("status");
-      const imagesEl = document.getElementById("images");
+<h2>История генераций</h2>
+<div id="history" class="history"></div>
 
-      if (!statusEl) return;
+<!-- Модалка -->
+<div id="modal" class="modal" onclick="closeModal()">
+  <img id="modal-img">
+</div>
 
-      if (data.status === "queued") {
-        statusEl.innerText = "в очереди ⏳";
-      }
-      else if (data.status === "processing") {
-        statusEl.innerText = "в обработке ⚙️";
-      }
-      else if (data.status === "done") {
-        statusEl.innerText = "готово ✅";
+{% if job_id %}
+<script>
+const jobId = "{{ job_id }}";
+let currentImages = [];
 
-        if (data.images && imagesEl.innerHTML === "") {
-          data.images.forEach((url, i) => {
-            const card = document.createElement("div");
-            card.className = "image-card";
+async function checkStatus() {
+  const res = await fetch(`/status/${jobId}`);
+  const data = await res.json();
 
-            const img = document.createElement("img");
-            img.src = url;
-            img.onclick = () => openModal(url);
+  if (data.status !== "done") {
+    setTimeout(checkStatus, 1000);
+    return;
+  }
 
-            const download = document.createElement("a");
-            download.href = url;
-            download.download = `nano-banana-${i+1}.jpg`;
-            download.innerText = "⬇ Скачать";
-            download.className = "download";
+  document.getElementById("status").innerText = "готово ✅";
 
-            card.appendChild(img);
-            card.appendChild(download);
-            imagesEl.appendChild(card);
-          });
-        }
-        return;
-      }
+  if (data.images) {
+    renderImages(data.images);
+    saveToHistory(data.images);
+    renderHistory();
+  }
+}
 
-      setTimeout(checkStatus, 1000);
-    }
+function renderImages(images) {
+  currentImages = images;
+  const el = document.getElementById("images");
+  el.innerHTML = "";
 
-    function openModal(url) {
-      const modal = document.getElementById("modal");
-      const img = document.getElementById("modal-img");
+  images.forEach((url, i) => {
+    const card = document.createElement("div");
+    card.className = "image-card";
+
+    const img = document.createElement("img");
+    img.src = url;
+    img.onclick = () => openModal(url);
+
+    const dl = document.createElement("a");
+    dl.href = url;
+    dl.download = `nano-${i+1}.jpg`;
+    dl.innerText = "⬇";
+    dl.className = "download";
+
+    card.appendChild(img);
+    card.appendChild(dl);
+    el.appendChild(card);
+  });
+}
+
+function saveToHistory(images) {
+  const history = JSON.parse(localStorage.getItem("history") || "[]");
+  history.unshift({
+    time: new Date().toLocaleString(),
+    images
+  });
+  localStorage.setItem("history", JSON.stringify(history.slice(0, 10)));
+}
+
+function renderHistory() {
+  const history = JSON.parse(localStorage.getItem("history") || "[]");
+  const el = document.getElementById("history");
+  el.innerHTML = "";
+
+  history.forEach(item => {
+    const block = document.createElement("div");
+    block.className = "history-item";
+    block.innerHTML = `<b>${item.time}</b>`;
+
+    const grid = document.createElement("div");
+    grid.className = "gallery";
+
+    item.images.forEach(url => {
+      const img = document.createElement("img");
       img.src = url;
-      modal.classList.add("show");
-    }
+      img.onclick = () => openModal(url);
+      grid.appendChild(img);
+    });
 
-    function closeModal() {
-      document.getElementById("modal").classList.remove("show");
-    }
+    block.appendChild(grid);
+    el.appendChild(block);
+  });
+}
 
-    checkStatus();
-  </script>
-  {% endif %}
+async function downloadAll() {
+  if (!currentImages.length) return;
+
+  const zip = new JSZip();
+  const folder = zip.folder("nano-banana");
+
+  for (let i = 0; i < currentImages.length; i++) {
+    const res = await fetch(currentImages[i]);
+    const blob = await res.blob();
+    folder.file(`image-${i+1}.jpg`, blob);
+  }
+
+  const content = await zip.generateAsync({ type: "blob" });
+  saveAs(content, "nano-banana.zip");
+}
+
+function openModal(url) {
+  document.getElementById("modal-img").src = url;
+  document.getElementById("modal").classList.add("show");
+}
+
+function closeModal() {
+  document.getElementById("modal").classList.remove("show");
+}
+
+renderHistory();
+checkStatus();
+</script>
+{% endif %}
 
 </body>
 </html>
