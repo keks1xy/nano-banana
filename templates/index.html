@@ -1,69 +1,148 @@
 <!doctype html>
-<html>
+<html lang="ru">
 <head>
   <meta charset="utf-8">
   <title>Nano Banana</title>
+
+  <!-- Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap">
 
   <!-- JSZip -->
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <style>
-    body { font-family: sans-serif; }
-
-    .gallery {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-      margin-top: 15px;
-      max-width: 900px;
+    :root {
+      --bg: #0f1115;
+      --card: #161a22;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #6366f1;
+      --border: #222631;
     }
 
-    .image-card {
-      position: relative;
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Inter", system-ui, sans-serif;
     }
 
-    .image-card img {
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 24px 80px;
+    }
+
+    h1, h2 {
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    textarea {
       width: 100%;
+      min-height: 90px;
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
       border-radius: 12px;
+      padding: 14px;
+      font-size: 15px;
+      resize: vertical;
+    }
+
+    select, button {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 14px;
+    }
+
+    button.primary {
+      background: var(--accent);
+      border: none;
+      font-weight: 600;
       cursor: pointer;
     }
 
-    .download {
-      position: absolute;
-      right: 8px;
-      bottom: 8px;
-      background: rgba(0,0,0,0.75);
-      color: white;
-      padding: 6px 10px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-size: 14px;
+    button.primary:hover {
+      opacity: 0.9;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .status {
+      margin-top: 14px;
+      color: var(--muted);
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid var(--border);
+    }
+
+    .card img {
+      width: 100%;
+      display: block;
+      cursor: pointer;
     }
 
     .select {
       position: absolute;
-      top: 8px;
-      left: 8px;
-      transform: scale(1.4);
+      top: 10px;
+      left: 10px;
+      transform: scale(1.3);
     }
 
-    .history {
-      margin-top: 30px;
-      max-width: 900px;
+    .download {
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      text-decoration: none;
     }
 
     .history-item {
-      margin-bottom: 25px;
-      border-top: 1px solid #ddd;
-      padding-top: 15px;
+      margin-top: 28px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
     }
 
+    .muted {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    /* Modal */
     .modal {
-      display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.85);
+      background: rgba(0,0,0,0.9);
+      display: none;
       align-items: center;
       justify-content: center;
       z-index: 999;
@@ -72,7 +151,7 @@
     .modal img {
       max-width: 90%;
       max-height: 90%;
-      border-radius: 12px;
+      border-radius: 16px;
     }
 
     .modal.show { display: flex; }
@@ -81,34 +160,41 @@
 
 <body>
 
-<h1>Nano Banana 🍌</h1>
+<div class="container">
 
-<form method="post">
-  <input name="prompt" placeholder="Введите текст" style="width:300px">
+  <h1>Nano Banana 🍌</h1>
 
-  <select name="format">
-    <option value="1:1">1:1</option>
-    <option value="4:3">4:3</option>
-    <option value="16:9">16:9</option>
-  </select>
+  <form method="post">
+    <textarea name="prompt" placeholder="Describe what you want to generate..."></textarea>
 
-  <button type="submit">Отправить</button>
-</form>
+    <div class="row">
+      <select name="format">
+        <option value="1:1">1:1</option>
+        <option value="4:3">4:3</option>
+        <option value="16:9">16:9</option>
+      </select>
 
-{% if status %}
-<p><b>Статус:</b> <span id="status">{{ status }}</span></p>
-{% endif %}
+      <button class="primary">Generate</button>
+    </div>
+  </form>
 
-<button onclick="downloadSelected()" style="margin-top:10px">
-  📦 Скачать выбранные
-</button>
+  {% if status %}
+  <div class="status">
+    Status: <span id="status">{{ status }}</span>
+  </div>
+  {% endif %}
 
-<div id="images" class="gallery"></div>
+  <div class="row" style="margin-top:20px">
+    <button onclick="downloadSelected()">📦 Download selected</button>
+  </div>
 
-<h2>История генераций</h2>
-<div id="history" class="history"></div>
+  <div id="images" class="gallery"></div>
 
-<!-- Модалка -->
+  <h2 style="margin-top:40px">History</h2>
+  <div id="history"></div>
+
+</div>
+
 <div id="modal" class="modal" onclick="closeModal()">
   <img id="modal-img">
 </div>
@@ -116,7 +202,6 @@
 {% if job_id %}
 <script>
 const jobId = "{{ job_id }}";
-let currentImages = [];
 
 async function checkStatus() {
   const res = await fetch(`/status/${jobId}`);
@@ -127,28 +212,25 @@ async function checkStatus() {
     return;
   }
 
-  document.getElementById("status").innerText = "готово ✅";
+  document.getElementById("status").innerText = "done ✅";
 
-  if (data.images) {
-    renderImages(data.images);
-    saveToHistory(data.images);
-    renderHistory();
-  }
+  renderImages(data.images);
+  saveToHistory(data.images);
+  renderHistory();
 }
 
 function renderImages(images) {
-  currentImages = images;
   const el = document.getElementById("images");
   el.innerHTML = "";
 
   images.forEach((url, i) => {
     const card = document.createElement("div");
-    card.className = "image-card";
+    card.className = "card";
 
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.className = "select";
-    checkbox.value = url;
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.className = "select";
+    cb.value = url;
 
     const img = document.createElement("img");
     img.src = url;
@@ -156,35 +238,30 @@ function renderImages(images) {
 
     const dl = document.createElement("a");
     dl.href = url;
-    dl.download = `nano-${i+1}.jpg`;
-    dl.innerText = "⬇";
+    dl.download = `image-${i+1}.jpg`;
     dl.className = "download";
+    dl.innerText = "⬇";
 
-    card.appendChild(checkbox);
-    card.appendChild(img);
-    card.appendChild(dl);
+    card.append(cb, img, dl);
     el.appendChild(card);
   });
 }
 
 function saveToHistory(images) {
-  const history = JSON.parse(localStorage.getItem("history") || "[]");
-  history.unshift({
-    time: new Date().toLocaleString(),
-    images
-  });
-  localStorage.setItem("history", JSON.stringify(history.slice(0, 10)));
+  const h = JSON.parse(localStorage.getItem("history") || "[]");
+  h.unshift({ time: new Date().toLocaleString(), images });
+  localStorage.setItem("history", JSON.stringify(h.slice(0, 10)));
 }
 
 function renderHistory() {
-  const history = JSON.parse(localStorage.getItem("history") || "[]");
+  const h = JSON.parse(localStorage.getItem("history") || "[]");
   const el = document.getElementById("history");
   el.innerHTML = "";
 
-  history.forEach(item => {
+  h.forEach(item => {
     const block = document.createElement("div");
     block.className = "history-item";
-    block.innerHTML = `<b>${item.time}</b>`;
+    block.innerHTML = `<div class="muted">${item.time}</div>`;
 
     const grid = document.createElement("div");
     grid.className = "gallery";
@@ -202,26 +279,18 @@ function renderHistory() {
 }
 
 async function downloadSelected() {
-  const selected = Array.from(
-    document.querySelectorAll(".select:checked")
-  ).map(cb => cb.value);
-
-  if (!selected.length) {
-    alert("Выберите хотя бы одну картинку");
-    return;
-  }
+  const selected = [...document.querySelectorAll(".select:checked")].map(c => c.value);
+  if (!selected.length) return alert("Select images");
 
   const zip = new JSZip();
   const folder = zip.folder("nano-banana");
 
   for (let i = 0; i < selected.length; i++) {
     const res = await fetch(selected[i]);
-    const blob = await res.blob();
-    folder.file(`image-${i+1}.jpg`, blob);
+    folder.file(`image-${i+1}.jpg`, await res.blob());
   }
 
-  const content = await zip.generateAsync({ type: "blob" });
-  saveAs(content, "nano-banana-selected.zip");
+  saveAs(await zip.generateAsync({ type: "blob" }), "nano-banana.zip");
 }
 
 function openModal(url) {
