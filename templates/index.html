@@ -12,16 +12,45 @@
   </form>
 
 {% if status %}
+<p><b>Статус:</b> <span id="status">
   {% if status == "queued" %}
-    <p><b>Статус:</b> в очереди 🕒</p>
+    в очереди ⏳
   {% elif status == "processing" %}
-    <p><b>Статус:</b> в обработке ⚙️</p>
+    в обработке ⚙️
   {% elif status == "done" %}
-    <p><b>Статус:</b> готово ✅</p>
+    готово ✅
   {% endif %}
+</span></p>
 {% endif %}
 
 
 
+
+{% if job_id %}
+<script>
+  const jobId = "{{ job_id }}";
+
+  async function checkStatus() {
+    const res = await fetch(`/status/${jobId}`);
+    const data = await res.json();
+
+    const statusEl = document.getElementById("status");
+    if (!statusEl) return;
+
+    if (data.status === "queued") {
+      statusEl.innerText = "в очереди 🕒";
+    } else if (data.status === "processing") {
+      statusEl.innerText = "в обработке ⚙️";
+    } else if (data.status === "done") {
+      statusEl.innerText = "готово ✅";
+      return; // перестаём опрашивать
+    }
+
+    setTimeout(checkStatus, 1000);
+  }
+
+  checkStatus();
+</script>
+{% endif %}
 </body>
 </html>
