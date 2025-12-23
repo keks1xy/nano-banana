@@ -11,10 +11,6 @@
   <style>
     body { font-family: sans-serif; }
 
-    .controls {
-      margin: 10px 0;
-    }
-
     .gallery {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -45,6 +41,13 @@
       font-size: 14px;
     }
 
+    .select {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      transform: scale(1.4);
+    }
+
     .history {
       margin-top: 30px;
       max-width: 900px;
@@ -56,7 +59,6 @@
       padding-top: 15px;
     }
 
-    /* Модалка */
     .modal {
       display: none;
       position: fixed;
@@ -97,7 +99,9 @@
 <p><b>Статус:</b> <span id="status">{{ status }}</span></p>
 {% endif %}
 
-<button onclick="downloadAll()" style="margin-top:10px">⬇ Скачать всё</button>
+<button onclick="downloadSelected()" style="margin-top:10px">
+  📦 Скачать выбранные
+</button>
 
 <div id="images" class="gallery"></div>
 
@@ -141,6 +145,11 @@ function renderImages(images) {
     const card = document.createElement("div");
     card.className = "image-card";
 
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "select";
+    checkbox.value = url;
+
     const img = document.createElement("img");
     img.src = url;
     img.onclick = () => openModal(url);
@@ -151,6 +160,7 @@ function renderImages(images) {
     dl.innerText = "⬇";
     dl.className = "download";
 
+    card.appendChild(checkbox);
     card.appendChild(img);
     card.appendChild(dl);
     el.appendChild(card);
@@ -191,20 +201,27 @@ function renderHistory() {
   });
 }
 
-async function downloadAll() {
-  if (!currentImages.length) return;
+async function downloadSelected() {
+  const selected = Array.from(
+    document.querySelectorAll(".select:checked")
+  ).map(cb => cb.value);
+
+  if (!selected.length) {
+    alert("Выберите хотя бы одну картинку");
+    return;
+  }
 
   const zip = new JSZip();
   const folder = zip.folder("nano-banana");
 
-  for (let i = 0; i < currentImages.length; i++) {
-    const res = await fetch(currentImages[i]);
+  for (let i = 0; i < selected.length; i++) {
+    const res = await fetch(selected[i]);
     const blob = await res.blob();
     folder.file(`image-${i+1}.jpg`, blob);
   }
 
   const content = await zip.generateAsync({ type: "blob" });
-  saveAs(content, "nano-banana.zip");
+  saveAs(content, "nano-banana-selected.zip");
 }
 
 function openModal(url) {
