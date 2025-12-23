@@ -58,9 +58,23 @@
       position:relative;
       z-index:1;
     }
+    .top-bar {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      padding:0 24px 10px;
+      position:relative;
+      z-index:3;
+      margin-top:-60px;
+    }
+    .top-tabs {
+      display:flex;
+      gap:8px;
+    }
     .gallery-wrap {
       padding:0 24px;
-      margin-top:-80px;
+      margin-top:-20px;
       position:relative;
       z-index:2;
     }
@@ -92,6 +106,16 @@
       left:10px;
       transform:scale(1.2);
     }
+    .control {
+      opacity:0;
+      transition:opacity .2s ease;
+      pointer-events:none;
+    }
+    .card:hover .control,
+    .history-card:hover .control {
+      opacity:1;
+      pointer-events:auto;
+    }
     .download {
       position:absolute;
       right:10px;
@@ -122,9 +146,11 @@
       position:sticky;
       bottom:0;
       padding:16px 24px 26px;
-      background:rgba(8,11,18,0.9);
-      backdrop-filter:blur(10px);
+      background:linear-gradient(135deg, rgba(12,15,24,0.95), rgba(10,12,20,0.95));
+      box-shadow:0 12px 38px rgba(0,0,0,0.35);
+      backdrop-filter:blur(12px);
       border-top:1px solid var(--border);
+      border-radius:24px 24px 0 0;
       z-index:5;
     }
     form {
@@ -230,24 +256,6 @@
       font-weight:600;
       margin-top:6px;
     }
-    .tabs {
-      display:flex;
-      gap:8px;
-      margin-top:18px;
-    }
-    .tab {
-      padding:8px 12px;
-      border:1px solid var(--border);
-      background:#0d111b;
-      border-radius:10px;
-      color:#e5e7eb;
-      cursor:pointer;
-    }
-    .tab.active {
-      border-color:#6366f1;
-      color:#c7d2fe;
-      background:rgba(99,102,241,0.12);
-    }
     .history {
       margin-top:18px;
     }
@@ -283,6 +291,24 @@
       color:var(--muted);
       margin-top:10px;
     }
+    .tabs {
+      display:flex;
+      gap:8px;
+      margin-top:18px;
+    }
+    .tab {
+      padding:8px 12px;
+      border:1px solid var(--border);
+      background:#0d111b;
+      border-radius:10px;
+      color:#e5e7eb;
+      cursor:pointer;
+    }
+    .tab.active {
+      border-color:#6366f1;
+      color:#c7d2fe;
+      background:rgba(99,102,241,0.12);
+    }
     .modal {
       position:fixed;
       inset:0;
@@ -303,8 +329,16 @@
 
 <body>
 <div class="hero">
-  <h1 class="title">Nano Banana 🍌</h1>
-  <p class="sub">Generate, keep your refs, and favorite the best shots</p>
+  <h1 class="title">Nano Banana x OFITSEROV AI 🍌</h1>
+  <p class="sub">Делаем быстро и качественно — уточнения @svyatoslavvvv (tg)</p>
+</div>
+
+<div class="top-bar">
+  <div></div>
+  <div class="top-tabs">
+    <button class="tab active" id="tab-history" onclick="switchTab('history')">История</button>
+    <button class="tab" id="tab-fav" onclick="switchTab('fav')">Избранные</button>
+  </div>
 </div>
 
 <div class="gallery-wrap">
@@ -348,6 +382,7 @@
       <div class="ref-row">
         <div class="ref-label">References</div>
         <div id="ref-previews" class="ref-previews"></div>
+        <span style="color:var(--muted); font-size:13px;">Добавьте до 10 референсов</span>
         <button type="button" class="add-ref" onclick="document.getElementById('references').click()">+</button>
         <input id="references" type="file" name="references" accept="image/*" multiple style="display:none">
       </div>
@@ -362,10 +397,6 @@
     </div>
   </form>
 
-  <div class="tabs">
-    <button class="tab active" id="tab-history" onclick="switchTab('history')">История</button>
-    <button class="tab" id="tab-fav" onclick="switchTab('fav')">Избранные</button>
-  </div>
   <div class="history">
     <div id="history-grid" class="history-grid"></div>
     <div id="favorites-grid" class="history-grid" style="display:none;"></div>
@@ -415,7 +446,7 @@ function renderReferencePreviews(list) {
     const placeholder = document.createElement("div");
     placeholder.style.color = "#6b7280";
     placeholder.style.fontSize = "13px";
-    placeholder.innerText = "Добавьте до 5 референсов";
+    placeholder.innerText = "Добавьте до 10 референсов";
     refPreviews.appendChild(placeholder);
   }
 }
@@ -423,8 +454,9 @@ function renderReferencePreviews(list) {
 function mergeInitialRefs() {
   const saved = loadSavedRefs();
   const merged = (serverReferences && serverReferences.length) ? serverReferences : saved;
-  saveRefs(merged);
-  renderReferencePreviews(merged);
+  const limited = merged.slice(0, 10);
+  saveRefs(limited);
+  renderReferencePreviews(limited);
 }
 
 if (refInput) {
@@ -434,7 +466,7 @@ if (refInput) {
       name: file.name,
       previewUrl: URL.createObjectURL(file)
     }));
-    const updated = [...current, ...uploads];
+    const updated = [...current, ...uploads].slice(0, 10);
     saveRefs(updated);
     renderReferencePreviews(updated);
   });
@@ -474,6 +506,7 @@ function renderImages(images) {
 
     const fav = document.createElement("button");
     fav.className = "fav-btn";
+    fav.classList.add("control");
     fav.innerText = isFavorite(url) ? "★" : "☆";
     fav.onclick = (e) => { e.preventDefault(); toggleFavorite(url); fav.innerText = isFavorite(url) ? "★" : "☆"; };
 
@@ -485,6 +518,7 @@ function renderImages(images) {
     dl.href = url;
     dl.download = `image-${i+1}.jpg`;
     dl.className = "download";
+    dl.classList.add("control");
     dl.innerText = "⬇";
 
     card.append(cb,fav,img,dl);
@@ -519,6 +553,7 @@ function renderHistory(items) {
 
     const fav = document.createElement("button");
     fav.className = "fav-btn";
+    fav.classList.add("control");
     fav.style.top = "8px";
     fav.style.right = "8px";
     fav.innerText = isFavorite(entry.url) ? "★" : "☆";
@@ -627,6 +662,7 @@ function renderFavorites() {
     meta.innerText = "Избранное";
     const fav = document.createElement("button");
     fav.className = "fav-btn";
+    fav.classList.add("control");
     fav.style.top = "8px";
     fav.style.right = "8px";
     fav.innerText = "★";
