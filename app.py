@@ -1,13 +1,14 @@
 from flask import Flask, request, render_template
 import base64
+import json
 import threading
 import time
 import uuid
 
 app = Flask(__name__)
 
-jobs = {}      # job_id -> dict
-history = []   # list of completed jobs
+jobs = {}  # job_id -> dict
+history = []  # list of completed jobs
 
 
 def worker(job_id, prompt, format):
@@ -44,11 +45,18 @@ def home():
     job_id = None
     status = None
     references = []
+    error = None
 
     if request.method == "POST":
         prompt = request.form.get("prompt")
         format = request.form.get("format")
         files = request.files.getlist("references")
+        stored_refs_raw = request.form.get("stored_refs") or "[]"
+
+        try:
+            references = json.loads(stored_refs_raw)
+        except Exception:
+            references = []
 
         for file in files:
             if not file:
@@ -61,6 +69,17 @@ def home():
                     "name": file.filename or "reference",
                     "data_url": f"data:{mime};base64,{encoded}",
                 }
+            )
+
+        if not prompt or len(prompt.strip()) < 10:
+            error = "Промпт должен содержать минимум 10 символов"
+            return render_template(
+                "index.html",
+                job_id=None,
+                status=None,
+                references=references,
+                history=history,
+                error=error,
             )
 
         job_id = str(uuid.uuid4())
@@ -88,6 +107,7 @@ def home():
         status=status,
         references=references,
         history=history,
+        error=error,
     )
 
 
