@@ -35,3 +35,7 @@ def home():
         job_id=job_id,
         status=status,
     )
+@app.route("/status/<job_id>")
+def job_status(job_id):
+    status = jobs.get(job_id, "unknown")
+    return {"status": status}
