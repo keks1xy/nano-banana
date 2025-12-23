@@ -11,8 +11,10 @@
     <button type="submit">Отправить</button>
   </form>
 
-  {% if prompt %}
-    <p><b>Вы ввели:</b> {{ prompt }}</p>
-  {% endif %}
+{% if prompt %}
+  <p><b>Статус:</b> в обработке ⏳</p>
+  <p><b>Запрос:</b> {{ prompt }}</p>
+{% endif %}
+
 </body>
 </html>
