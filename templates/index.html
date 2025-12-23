@@ -1,9 +1,11 @@
 <!doctype html>
 <html>
 <head>
+  <meta charset="utf-8">
   <title>Nano Banana</title>
 </head>
 <body>
+
   <h1>Nano Banana 🍌</h1>
 
   <form method="post">
@@ -11,46 +13,74 @@
     <button type="submit">Отправить</button>
   </form>
 
-{% if status %}
-<p><b>Статус:</b> <span id="status">
-  {% if status == "queued" %}
-    в очереди ⏳
-  {% elif status == "processing" %}
-    в обработке ⚙️
-  {% elif status == "done" %}
-    готово ✅
+  {% if status %}
+  <p>
+    <b>Статус:</b>
+    <span id="status">
+      {% if status == "queued" %}
+        в очереди ⏳
+      {% elif status == "processing" %}
+        в обработке ⚙️
+      {% elif status == "done" %}
+        готово ✅
+      {% endif %}
+    </span>
+  </p>
   {% endif %}
-</span></p>
-{% endif %}
 
+  <!-- БЛОК ДЛЯ КАРТИНОК -->
+  <div
+    id="images"
+    style="
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-top: 20px;
+      max-width: 700px;
+    "
+  ></div>
 
+  {% if job_id %}
+  <script>
+    const jobId = "{{ job_id }}";
 
+    async function checkStatus() {
+      const res = await fetch(`/status/${jobId}`);
+      const data = await res.json();
 
-{% if job_id %}
-<script>
-  const jobId = "{{ job_id }}";
+      const statusEl = document.getElementById("status");
+      const imagesEl = document.getElementById("images");
 
-  async function checkStatus() {
-    const res = await fetch(`/status/${jobId}`);
-    const data = await res.json();
+      if (!statusEl) return;
 
-    const statusEl = document.getElementById("status");
-    if (!statusEl) return;
+      if (data.status === "queued") {
+        statusEl.innerText = "в очереди ⏳";
+      }
+      else if (data.status === "processing") {
+        statusEl.innerText = "в обработке ⚙️";
+      }
+      else if (data.status === "done") {
+        statusEl.innerText = "готово ✅";
 
-    if (data.status === "queued") {
-      statusEl.innerText = "в очереди 🕒";
-    } else if (data.status === "processing") {
-      statusEl.innerText = "в обработке ⚙️";
-    } else if (data.status === "done") {
-      statusEl.innerText = "готово ✅";
-      return; // перестаём опрашивать
+        if (data.images && imagesEl.innerHTML === "") {
+          data.images.forEach(url => {
+            const img = document.createElement("img");
+            img.src = url;
+            img.style.width = "100%";
+            img.style.borderRadius = "12px";
+            imagesEl.appendChild(img);
+          });
+        }
+
+        return; // останавливаем опрос
+      }
+
+      setTimeout(checkStatus, 1000);
     }
 
-    setTimeout(checkStatus, 1000);
-  }
+    checkStatus();
+  </script>
+  {% endif %}
 
-  checkStatus();
-</script>
-{% endif %}
 </body>
 </html>
