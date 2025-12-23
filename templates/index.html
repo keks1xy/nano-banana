@@ -11,14 +11,16 @@
     <button type="submit">Отправить</button>
   </form>
 
-{% if prompt %}
-  {% if status == "processing" %}
-    <p><b>Статус:</b> в обработке ⏳</p>
+{% if status %}
+  {% if status == "queued" %}
+    <p><b>Статус:</b> в очереди 🕒</p>
+  {% elif status == "processing" %}
+    <p><b>Статус:</b> в обработке ⚙️</p>
   {% elif status == "done" %}
     <p><b>Статус:</b> готово ✅</p>
   {% endif %}
-  <p><b>Запрос:</b> {{ prompt }}</p>
 {% endif %}
+
 
 
 </body>
