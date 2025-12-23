@@ -1,11 +1,11 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template
 import threading
 import time
 import uuid
 
 app = Flask(__name__)
 
-jobs = {}  # job_id -> {status, images}
+jobs = {}  # job_id -> dict
 
 
 def worker(job_id, prompt, format):
@@ -13,12 +13,9 @@ def worker(job_id, prompt, format):
 
     time.sleep(3)  # имитация генерации
 
-    # ФЕЙКОВЫЕ КАРТИНКИ (пока без Banana)
     images = [
-        "https://picsum.photos/seed/a/1024/1024",
-        "https://picsum.photos/seed/b/1024/1024",
-        "https://picsum.photos/seed/c/1024/1024",
-        "https://picsum.photos/seed/d/1024/1024",
+        f"https://picsum.photos/seed/{uuid.uuid4().hex}/1024/1024"
+        for _ in range(4)
     ]
 
     jobs[job_id]["status"] = "done"
@@ -52,7 +49,7 @@ def home():
     return render_template(
         "index.html",
         job_id=job_id,
-        status=status
+        status=status,
     )
 
 
@@ -61,9 +58,9 @@ def job_status(job_id):
     job = jobs.get(job_id)
 
     if not job:
-        return jsonify({"status": "unknown"})
+        return {"status": "unknown"}
 
-    return jsonify({
+    return {
         "status": job["status"],
         "images": job.get("images", [])
-    })
+    }
