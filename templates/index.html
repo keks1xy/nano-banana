@@ -60,17 +60,13 @@
     }
     .top-bar {
       display:flex;
-      justify-content:space-between;
+      justify-content:flex-end;
       align-items:center;
       gap:12px;
       padding:0 24px 10px;
       position:relative;
       z-index:3;
       margin-top:-60px;
-    }
-    .top-tabs {
-      display:flex;
-      gap:8px;
     }
     .gallery-wrap {
       padding:0 24px;
@@ -111,8 +107,7 @@
       transition:opacity .2s ease;
       pointer-events:none;
     }
-    .card:hover .control,
-    .history-card:hover .control {
+    .card:hover .control {
       opacity:1;
       pointer-events:auto;
     }
@@ -256,74 +251,6 @@
       font-weight:600;
       margin-top:6px;
     }
-    .history {
-      margin-top:18px;
-    }
-    .history-grid {
-      display:grid;
-      grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
-      gap:10px;
-    }
-    .history-card {
-      position:relative;
-      border-radius:12px;
-      overflow:hidden;
-      background:#161a22;
-      border:1px solid #1f2430;
-    }
-    .history-card img {
-      width:100%;
-      display:block;
-    }
-    .history-meta {
-      position:absolute;
-      left:8px;
-      bottom:8px;
-      right:8px;
-      background:rgba(0,0,0,.6);
-      border-radius:10px;
-      padding:6px 8px;
-      color:#e5e7eb;
-      font-size:12px;
-      line-height:1.4;
-    }
-    .favorites-empty {
-      color:var(--muted);
-      margin-top:10px;
-    }
-    .tabs {
-      display:flex;
-      gap:8px;
-      margin-top:18px;
-    }
-    .tab {
-      padding:8px 12px;
-      border:1px solid var(--border);
-      background:#0d111b;
-      border-radius:10px;
-      color:#e5e7eb;
-      cursor:pointer;
-    }
-    .tab.active {
-      border-color:#6366f1;
-      color:#c7d2fe;
-      background:rgba(99,102,241,0.12);
-    }
-    .modal {
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.9);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      z-index:999;
-    }
-    .modal img {
-      max-width:90%;
-      max-height:90%;
-      border-radius:14px;
-    }
-    .modal.show { display:flex; }
   </style>
 </head>
 
@@ -334,11 +261,7 @@
 </div>
 
 <div class="top-bar">
-  <div></div>
-  <div class="top-tabs">
-    <button class="tab active" id="tab-history" onclick="switchTab('history')">История</button>
-    <button class="tab" id="tab-fav" onclick="switchTab('fav')">Избранные</button>
-  </div>
+  <button class="tab" id="tab-fav" onclick="toggleFavoritesFilter()">Избранные</button>
 </div>
 
 <div class="gallery-wrap">
@@ -398,9 +321,7 @@
   </form>
 
   <div class="history">
-    <div id="history-grid" class="history-grid"></div>
-    <div id="favorites-grid" class="history-grid" style="display:none;"></div>
-    <div id="favorites-empty" class="favorites-empty" style="display:none;">Пока нет избранных изображений</div>
+    <!-- История в отдельной сетке убрана. Галерея выше показывает все генерации; кнопка "Избранные" фильтрует их. -->
   </div>
 </div>
 
@@ -418,6 +339,10 @@ const refInput = document.getElementById("references");
 const refPreviews = document.getElementById("ref-previews");
 const storedRefsInput = document.getElementById("stored_refs");
 const promptInput = document.getElementById("prompt");
+const favTab = document.getElementById("tab-fav");
+
+let allImages = [];
+let showOnlyFavorites = false;
 
 function loadSavedRefs() {
   const saved = localStorage.getItem("nb_refs");
@@ -472,9 +397,63 @@ if (refInput) {
   });
 }
 
-mergeInitialRefs();
-renderHistory(initialHistory);
-renderFavorites();
+function buildGalleryItems(historyItems) {
+  const flat = (historyItems || []).flatMap(item =>
+    (item.images || []).map(url => ({
+      url,
+      prompt: item.prompt,
+      job_id: item.job_id,
+    }))
+  );
+  // последние генерации добавляются справа в history, разворачиваем чтобы новые были первыми
+  return flat.reverse();
+}
+
+function renderGallery() {
+  const el = document.getElementById("images");
+  if (!el) return;
+  el.innerHTML = "";
+
+  const list = showOnlyFavorites ? allImages.filter(i => isFavorite(i.url)) : allImages;
+
+  list.forEach((entry, i) => {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.className = "select";
+    cb.value = entry.url;
+
+    const fav = document.createElement("button");
+    fav.className = "fav-btn control";
+    fav.innerText = isFavorite(entry.url) ? "★" : "☆";
+    fav.onclick = (e) => { e.preventDefault(); toggleFavorite(entry.url); fav.innerText = isFavorite(entry.url) ? "★" : "☆"; renderGallery(); };
+
+    const img = document.createElement("img");
+    img.src = entry.url;
+    img.alt = entry.prompt || "generated image";
+    img.onclick = () => openModal(entry.url);
+
+    const meta = document.createElement("div");
+    meta.className = "history-meta";
+    meta.innerText = entry.prompt || "Без промпта";
+
+    const dl = document.createElement("a");
+    dl.href = entry.url;
+    dl.download = `image-${i+1}.jpg`;
+    dl.className = "download control";
+    dl.innerText = "⬇";
+
+    card.append(cb,fav,img,meta,dl);
+    el.appendChild(card);
+  });
+}
+
+function setGalleryFromHistory(historyItems) {
+  allImages = buildGalleryItems(historyItems);
+  renderGallery();
+}
 
 async function checkStatus() {
   if (!jobId) return;
@@ -487,87 +466,13 @@ async function checkStatus() {
   }
 
   document.getElementById("status").innerText = "done ✅";
-  renderImages(data.images);
-  refreshHistory();
-}
-
-function renderImages(images) {
-  const el = document.getElementById("images");
-  el.innerHTML = "";
-
-  images.forEach((url, i) => {
-    const card = document.createElement("div");
-    card.className = "card";
-
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.className = "select";
-    cb.value = url;
-
-    const fav = document.createElement("button");
-    fav.className = "fav-btn";
-    fav.classList.add("control");
-    fav.innerText = isFavorite(url) ? "★" : "☆";
-    fav.onclick = (e) => { e.preventDefault(); toggleFavorite(url); fav.innerText = isFavorite(url) ? "★" : "☆"; };
-
-    const img = document.createElement("img");
-    img.src = url;
-    img.onclick = () => openModal(url);
-
-    const dl = document.createElement("a");
-    dl.href = url;
-    dl.download = `image-${i+1}.jpg`;
-    dl.className = "download";
-    dl.classList.add("control");
-    dl.innerText = "⬇";
-
-    card.append(cb,fav,img,dl);
-    el.appendChild(card);
-  });
-}
-
-function renderHistory(items) {
-  const container = document.getElementById("history-grid");
-  if (!container) return;
-  container.innerHTML = "";
-
-  const flatImages = (items || []).flatMap(item =>
-    (item.images || []).map(url => ({
-      url,
-      prompt: item.prompt,
-      job_id: item.job_id,
-    }))
-  );
-
-  flatImages.forEach(entry => {
-    const card = document.createElement("div");
-    card.className = "history-card";
-
-    const img = document.createElement("img");
-    img.src = entry.url;
-    img.alt = entry.prompt || "generated image";
-
-    const meta = document.createElement("div");
-    meta.className = "history-meta";
-    meta.innerText = entry.prompt || "Без промпта";
-
-    const fav = document.createElement("button");
-    fav.className = "fav-btn";
-    fav.classList.add("control");
-    fav.style.top = "8px";
-    fav.style.right = "8px";
-    fav.innerText = isFavorite(entry.url) ? "★" : "☆";
-    fav.onclick = (e) => { e.preventDefault(); toggleFavorite(entry.url); fav.innerText = isFavorite(entry.url) ? "★" : "☆"; renderFavorites(); };
-
-    card.append(img, meta, fav);
-    container.appendChild(card);
-  });
+  await refreshHistory();
 }
 
 async function refreshHistory() {
   const res = await fetch("/history");
   const data = await res.json();
-  renderHistory(data.history || []);
+  setGalleryFromHistory(data.history || []);
 }
 
 async function downloadSelected() {
@@ -588,28 +493,6 @@ function openModal(url) {
 }
 function closeModal() {
   document.getElementById("modal").classList.remove("show");
-}
-
-function switchTab(tab) {
-  const histBtn = document.getElementById("tab-history");
-  const favBtn = document.getElementById("tab-fav");
-  const histGrid = document.getElementById("history-grid");
-  const favGrid = document.getElementById("favorites-grid");
-  const favEmpty = document.getElementById("favorites-empty");
-
-  if (tab === "history") {
-    histBtn.classList.add("active");
-    favBtn.classList.remove("active");
-    histGrid.style.display = "grid";
-    favGrid.style.display = "none";
-    favEmpty.style.display = "none";
-  } else {
-    histBtn.classList.remove("active");
-    favBtn.classList.add("active");
-    histGrid.style.display = "none";
-    renderFavorites();
-    favGrid.style.display = "grid";
-  }
 }
 
 function loadFavorites() {
@@ -634,42 +517,17 @@ function toggleFavorite(url) {
     favs.push(url);
     saveFavorites(favs);
   }
-  renderFavorites();
+  renderGallery();
 }
 
-function renderFavorites() {
-  const favGrid = document.getElementById("favorites-grid");
-  const favEmpty = document.getElementById("favorites-empty");
-  if (!favGrid) return;
-  const favs = loadFavorites();
-  favGrid.innerHTML = "";
-  if (!favs.length) {
-    favEmpty.style.display = "block";
-    favGrid.style.display = "none";
-    return;
+function toggleFavoritesFilter() {
+  showOnlyFavorites = !showOnlyFavorites;
+  if (showOnlyFavorites) {
+    favTab.classList.add("active");
+  } else {
+    favTab.classList.remove("active");
   }
-  favEmpty.style.display = "none";
-  favGrid.style.display = "grid";
-
-  favs.forEach(url => {
-    const card = document.createElement("div");
-    card.className = "history-card";
-    const img = document.createElement("img");
-    img.src = url;
-    img.alt = "favorite";
-    const meta = document.createElement("div");
-    meta.className = "history-meta";
-    meta.innerText = "Избранное";
-    const fav = document.createElement("button");
-    fav.className = "fav-btn";
-    fav.classList.add("control");
-    fav.style.top = "8px";
-    fav.style.right = "8px";
-    fav.innerText = "★";
-    fav.onclick = (e) => { e.preventDefault(); toggleFavorite(url); };
-    card.append(img, meta, fav);
-    favGrid.appendChild(card);
-  });
+  renderGallery();
 }
 
 document.getElementById("gen-form").addEventListener("submit", (e) => {
@@ -681,6 +539,9 @@ document.getElementById("gen-form").addEventListener("submit", (e) => {
   }
   storedRefsInput.value = localStorage.getItem("nb_refs") || "[]";
 });
+
+mergeInitialRefs();
+setGalleryFromHistory(initialHistory);
 
 if (jobId) {
   checkStatus();
