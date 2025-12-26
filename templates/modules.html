@@ -140,6 +140,7 @@
     .pane img{max-width:100%;border-radius:12px;display:block;margin:6px 0;}
     .pane .preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px;}
     .pane .preview-grid img{width:100%;height:70px;object-fit:cover;}
+    .pane .single-preview img{width:100%;height:180px;object-fit:cover;}
     textarea{
       width:100%;
       min-height:80px;
@@ -266,6 +267,8 @@
     let isPanning = false;
     let panStart = {x:0,y:0};
     let panOrigin = {x:0,y:0};
+    let draggingConnection = null; // {fromId, start:{x,y}}
+    let hoverTarget = null;
 
     const maxNodes = 5;
     let idCounter = 2;
@@ -360,17 +363,20 @@
 
     function startConnection(nodeId){
       pendingFrom = nodeId;
-      showToast("Выберите вход для соединения");
+      draggingConnection = { fromId: nodeId };
+      showToast("Зажмите и потяните к входу");
     }
 
     function finishConnection(nodeId){
       if (!pendingFrom) return;
       if (pendingFrom === nodeId){
         pendingFrom = null;
+        draggingConnection = null;
         return;
       }
       addConnection(pendingFrom, nodeId);
       pendingFrom = null;
+        draggingConnection = null;
     }
 
     function removeConnection(idx){
@@ -410,13 +416,25 @@
     }
 
     window.addEventListener("pointermove", (e)=>{
+      if (draggingConnection){
+        const world = worldPoint(e.clientX, e.clientY);
+        draggingConnection.cursor = world;
+        drawLinks();
+      }
       if (!dragNode) return;
       const world = worldPoint(e.clientX, e.clientY);
       dragNode.x = world.x - dragOffset.x;
       dragNode.y = world.y - dragOffset.y;
       renderNodes(false);
+      drawLinks();
     });
     window.addEventListener("pointerup", (e)=>{
+      if (draggingConnection){
+        const target = hoverTarget;
+        if (target) finishConnection(target);
+        draggingConnection = null;
+        drawLinks();
+      }
       dragNode = null;
     });
 
@@ -441,6 +459,8 @@
         input.className = "handle input";
         input.title = "Вход";
         input.addEventListener("click", (e)=>{ e.stopPropagation(); finishConnection(node.id); });
+        input.addEventListener("pointerenter", ()=>{ hoverTarget = node.id; });
+        input.addEventListener("pointerleave", ()=>{ if (hoverTarget===node.id) hoverTarget=null; });
         handles.appendChild(input);
       } else {
         const spacer = document.createElement("div");
@@ -456,7 +476,10 @@
         const output = document.createElement("div");
         output.className = "handle output";
         output.title = "Выход";
-        output.addEventListener("click", (e)=>{ e.stopPropagation(); startConnection(node.id); });
+        output.addEventListener("pointerdown", (e)=>{
+          e.stopPropagation();
+          startConnection(node.id);
+        });
         handles.appendChild(output);
       }
 
@@ -467,23 +490,20 @@
         const pane = document.createElement("div");
         pane.className = "pane";
         pane.innerHTML = `
-          <div class="desc">Добавь до 3 референсов</div>
-          <input type="file" accept="image/*" multiple style="display:none">
+          <div class="desc">Добавь 1 референс</div>
+          <input type="file" accept="image/*" style="display:none">
           <button class="btn ghost" type="button">Загрузить</button>
-          <div class="preview-grid"></div>
+          <div class="single-preview"></div>
         `;
         const input = pane.querySelector("input");
         const btn = pane.querySelector("button");
-        const grid = pane.querySelector(".preview-grid");
+        const grid = pane.querySelector(".single-preview");
         btn.onclick = (e)=>{ e.stopPropagation(); input.click(); };
         input.addEventListener("change", async (e)=>{
           e.stopPropagation();
-          const files = Array.from(input.files || []).slice(0,3);
-          const urls = [];
-          for (const f of files){
-            urls.push(await fileToDataUrl(f));
-          }
-          node.images = urls;
+          const files = Array.from(input.files || []).slice(0,1);
+          if (!files.length) return;
+          node.images = [await fileToDataUrl(files[0])];
           renderNodes(false);
         });
         node.images = node.images || [];
@@ -608,6 +628,26 @@
         path.addEventListener("click", ()=>removeConnection(idx));
         linksSvg.appendChild(path);
       });
+
+      if (draggingConnection && draggingConnection.cursor){
+        const fromEl = document.querySelector(`[data-node="${draggingConnection.fromId}"] .handle.output`);
+        if (fromEl){
+          const ra = fromEl.getBoundingClientRect();
+          const startX = ra.left + ra.width/2 - bounds.left;
+          const startY = ra.top + ra.height/2 - bounds.top;
+          const endX = draggingConnection.cursor.x;
+          const endY = draggingConnection.cursor.y;
+          const dx = (endX - startX) * 0.4;
+          const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+          path.setAttribute("d", `M ${startX} ${startY} C ${startX+dx} ${startY}, ${endX-dx} ${endY}, ${endX} ${endY}`);
+          path.setAttribute("fill","none");
+          path.setAttribute("stroke","rgba(96,165,250,.45)");
+          path.setAttribute("stroke-width","4");
+          path.setAttribute("stroke-linecap","round");
+          path.setAttribute("stroke-dasharray","6 4");
+          linksSvg.appendChild(path);
+        }
+      }
     }
 
     function addNode(type){
