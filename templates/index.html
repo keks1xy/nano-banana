@@ -4,304 +4,275 @@
   <meta charset="utf-8">
   <title>Nano Banana</title>
 
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap">
 
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <style>
-    :root{
-      --bg:#05070d;
-      --card:#121623;
-      --muted:#9ca3af;
-      --accent:#7c3aed;
-      --border:#1f2430;
-      --text:#e5e7eb;
-      --chip:#1f2430;
+    :root {
+      --bg: #0b0d14;
+      --card: #121623;
+      --muted: #9ca3af;
+      --accent: #7c3aed;
+      --accent-2: #22c55e;
+      --border: #1f2430;
     }
-    *{box-sizing:border-box;}
-    body{
+    * { box-sizing:border-box; }
+    body {
       margin:0;
-      font-family:Inter,system-ui,sans-serif;
-      color:var(--text);
-      background:
-        radial-gradient(circle at 20% 20%, rgba(124,58,237,.15), transparent 35%),
-        radial-gradient(circle at 80% 30%, rgba(34,197,94,.10), transparent 40%),
-        radial-gradient(circle at 50% 80%, rgba(59,130,246,.12), transparent 35%),
-        var(--bg);
+      font-family:Inter,sans-serif;
+      color:#e5e7eb;
+      background:radial-gradient(circle at 20% 20%, rgba(124,58,237,.15), transparent 35%),
+                 radial-gradient(circle at 80% 30%, rgba(34,197,94,.15), transparent 40%),
+                 radial-gradient(circle at 50% 80%, rgba(59,130,246,.18), transparent 35%),
+                 #05070d;
       min-height:100vh;
+      display:flex;
+      flex-direction:column;
     }
-    .hero{
-      padding:32px 24px 70px;
+    .hero {
+      position:relative;
+      padding:32px 24px 120px;
       text-align:center;
+      overflow:hidden;
     }
-    .title{
-      margin:0;
+    .hero::after {
+      content:'';
+      position:absolute;
+      inset:0;
+      background:linear-gradient(180deg, rgba(5,7,13,0) 0%, rgba(5,7,13,.85) 100%);
+      pointer-events:none;
+    }
+    .title {
       font-size:36px;
-      font-weight:800;
-      letter-spacing:.2px;
+      font-weight:700;
+      letter-spacing:0.3px;
+      margin:0;
+      position:relative;
+      z-index:1;
     }
-    .sub{
+    .sub {
       margin:10px 0 0;
       color:var(--muted);
-      font-size:14px;
+      position:relative;
+      z-index:1;
     }
-
-    .wrap{max-width:1100px;margin:0 auto;padding:0 24px 120px;}
-    .topbar{display:flex;justify-content:flex-end;gap:10px;margin:-30px 0 12px;}
-    .btn{
-      background:rgba(18,22,35,.75);
-      color:#fff;
-      border:1px solid var(--border);
-      border-radius:12px;
-      padding:10px 12px;
-      cursor:pointer;
-      font-weight:600;
+    .top-bar {
+      display:flex;
+      justify-content:flex-end;
+      align-items:center;
+      gap:12px;
+      padding:0 24px 10px;
+      position:relative;
+      z-index:3;
+      margin-top:-60px;
     }
-    .btn:hover{opacity:.92;}
-    .btn.primary{
-      background:linear-gradient(135deg,#a855f7,#6366f1);
-      border:none;
+    .gallery-wrap {
+      padding:0 24px;
+      margin-top:-20px;
+      position:relative;
+      z-index:2;
     }
-    .btn.ghost{
-      background:transparent;
-      border:1px solid var(--border);
-    }
-    .btn.active{
-      border-color:#60a5fa;
-      box-shadow:0 0 0 3px rgba(96,165,250,.15);
-    }
-
-    .gallery{
+    .gallery {
       display:grid;
-      grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+      grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
       gap:12px;
       background:#060910aa;
       border:1px solid var(--border);
       border-radius:18px;
       padding:14px;
-      backdrop-filter:blur(4px);
-      min-height:120px;
+      backdrop-filter:blur(3px);
     }
-    .card{
+    .card {
       position:relative;
       background:var(--card);
-      border-radius:16px;
+      border-radius:14px;
       overflow:hidden;
       border:1px solid #1e2432;
     }
-    .card img{width:100%;display:block;cursor:pointer;}
-    .select{
-      position:absolute;top:10px;left:10px;transform:scale(1.2);
-      z-index:2;
+    .card img {
+      width:100%;
+      display:block;
+      cursor:pointer;
     }
-    .control{
+    .select {
+      position:absolute;
+      top:10px;
+      left:10px;
+      transform:scale(1.2);
+    }
+    .control {
       opacity:0;
       transition:opacity .2s ease;
       pointer-events:none;
     }
-    .card:hover .control{
+    .card:hover .control {
       opacity:1;
       pointer-events:auto;
     }
-    .download{
-      position:absolute;right:10px;bottom:10px;
+    .download {
+      position:absolute;
+      right:10px;
+      bottom:10px;
       background:rgba(0,0,0,.55);
-      color:#fff;text-decoration:none;
+      padding:6px 10px;
+      border-radius:10px;
+      color:#fff;
+      text-decoration:none;
       border:1px solid rgba(255,255,255,.08);
-      border-radius:12px;
-      padding:7px 10px;
-      z-index:2;
-      font-weight:700;
     }
-    .fav{
-      position:absolute;top:10px;right:10px;
+    .fav-btn {
+      position:absolute;
+      top:10px;
+      right:44px;
       background:rgba(0,0,0,.55);
-      color:#fbbf24;
       border:1px solid rgba(255,255,255,.08);
-      border-radius:12px;
-      width:38px;height:38px;
-      display:flex;align-items:center;justify-content:center;
-      cursor:pointer;
-      z-index:2;
-      font-size:18px;
-    }
-    .meta{
-      padding:10px 12px;
-      border-top:1px solid #1e2432;
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.3;
+      border-radius:10px;
+      width:34px;
+      height:34px;
       display:flex;
-      justify-content:space-between;
-      gap:10px;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      color:#fbbf24;
     }
-    .meta .prompt{
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-      flex:1;
-    }
-
-    .panel{
-      position:fixed;
-      left:0;right:0;bottom:0;
-      padding:14px 24px 18px;
+    .panel {
+      position:sticky;
+      bottom:0;
+      padding:16px 24px 26px;
       background:linear-gradient(135deg, rgba(12,15,24,0.95), rgba(10,12,20,0.95));
+      box-shadow:0 12px 38px rgba(0,0,0,0.35);
+      backdrop-filter:blur(12px);
       border-top:1px solid var(--border);
-      backdrop-filter:blur(14px);
-      box-shadow:0 12px 38px rgba(0,0,0,.40);
-      z-index:20;
+      border-radius:24px 24px 0 0;
+      z-index:5;
     }
-    form{
+    form {
+      display:flex;
+      gap:16px;
+      flex-wrap:wrap;
+      align-items:flex-start;
+      justify-content:center;
       max-width:1100px;
       margin:0 auto;
-      display:flex;
-      gap:14px;
-      align-items:flex-start;
-      flex-wrap:wrap;
     }
-
-    .leftControls{
+    .controls {
       display:flex;
       gap:10px;
       align-items:center;
       flex-wrap:wrap;
     }
-    select{
-      background:rgba(18,22,35,.85);
+    .row {
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    select, button {
+      background:var(--card);
       color:#fff;
       border:1px solid var(--border);
-      border-radius:12px;
-      padding:10px 12px;
-      font-weight:600;
+      border-radius:10px;
+      padding:10px 14px;
+    }
+    button.primary {
+      background:linear-gradient(135deg,#a855f7,#6366f1);
+      border:none;
       cursor:pointer;
+      font-weight:700;
+      padding:12px 16px;
     }
-
-    .status{
-      color:var(--muted);
-      font-size:13px;
-      padding-top:10px;
-      min-width:160px;
-    }
-    .status b{color:#fff;}
-
-    .promptArea{
+    .prompt-area {
       flex:1;
-      min-width:320px;
+      min-width:280px;
       display:flex;
       flex-direction:column;
       gap:10px;
     }
-
-    .refRow{
+    textarea {
+      width:100%;
+      min-height:120px;
+      background:#0d111b;
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px;
+      color:#fff;
+      resize:vertical;
+    }
+    .status { color:var(--muted); }
+    .ref-row {
       display:flex;
-      gap:10px;
       align-items:center;
+      gap:12px;
       flex-wrap:wrap;
     }
-    .refLabel{font-weight:700;color:#cbd5e1;font-size:13px;}
-    .refPreviews{
+    .ref-label {
+      color:#cbd5e1;
+      font-weight:600;
+      font-size:14px;
+    }
+    .ref-previews {
       display:flex;
       gap:8px;
       flex-wrap:wrap;
       min-height:44px;
-      align-items:center;
     }
-    .refChip{
-      width:44px;height:44px;
-      border-radius:14px;
-      background:var(--chip);
+    .ref-chip {
+      width:44px;
+      height:44px;
+      border-radius:12px;
+      background:#1f2430;
       border:1px solid #222631;
       background-size:cover;
       background-position:center;
-      position:relative;
-      overflow:hidden;
     }
-    .refChip .x{
-      position:absolute;top:4px;right:4px;
-      width:18px;height:18px;border-radius:999px;
-      background:rgba(0,0,0,.55);
-      border:1px solid rgba(255,255,255,.12);
-      color:#fff;
-      display:flex;align-items:center;justify-content:center;
-      font-size:12px;
+    .add-ref {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      width:44px;
+      height:44px;
+      border-radius:12px;
+      border:1px dashed #3b82f6;
+      background:#161a22;
+      color:#3b82f6;
       cursor:pointer;
-    }
-    .addRef{
-      width:44px;height:44px;border-radius:14px;
-      border:1px dashed #60a5fa;
-      background:rgba(18,22,35,.65);
-      color:#60a5fa;
       font-size:20px;
-      cursor:pointer;
-      display:flex;align-items:center;justify-content:center;
+      transition:background .2s,color .2s,border-color .2s;
     }
-    textarea{
-      width:100%;
-      min-height:110px;
-      background:#0d111b;
-      border:1px solid var(--border);
-      border-radius:18px;
-      padding:14px;
-      color:#fff;
-      resize:vertical;
-      outline:none;
-      font-size:14px;
-      line-height:1.4;
+    .add-ref:hover {
+      background:#1f2430;
+      color:#60a5fa;
+      border-color:#60a5fa;
     }
-    .error{color:#f87171;font-weight:700;font-size:13px;}
-
-    /* modal */
-    .modal{
-      position:fixed;inset:0;
-      background:rgba(0,0,0,.88);
-      display:none;
-      align-items:center;justify-content:center;
-      z-index:50;
-    }
-    .modal.show{display:flex;}
-    .modalInner{
-      max-width:92vw;max-height:92vh;
-      display:flex;flex-direction:column;gap:10px;
-      align-items:flex-end;
-    }
-    .modalImg{
-      max-width:92vw;max-height:86vh;
-      border-radius:18px;
-      display:block;
-    }
-    .modalActions{
-      display:flex;gap:10px;
-    }
-
-    @media (max-width: 700px){
-      .status{min-width:unset;}
-      .topbar{justify-content:center;}
+    .error {
+      color:#f87171;
+      font-weight:600;
+      margin-top:6px;
     }
   </style>
 </head>
 
 <body>
-  <div class="hero">
-    <h1 class="title">Nano Banana 🍌</h1>
-    <div class="sub">Higgsfield-style UI • refs + history + zip</div>
-  </div>
+<div class="hero">
+  <h1 class="title">Nano Banana x OFITSEROV AI 🍌</h1>
+  <p class="sub">Делаем быстро и качественно — уточнения @svyatoslavvvv (tg)</p>
+</div>
 
-  <div class="wrap">
-    <div class="topbar">
-      <button class="btn ghost" id="btnFav" type="button" onclick="toggleFavFilter()">Избранные</button>
-      <button class="btn" type="button" onclick="downloadSelected()">📦 Download selected</button>
-    </div>
+<div class="top-bar">
+  <button class="tab" id="tab-fav" onclick="toggleFavoritesFilter()">Избранные</button>
+</div>
 
-    <div id="images" class="gallery"></div>
-  </div>
+<div class="gallery-wrap">
+  <div id="images" class="gallery"></div>
+</div>
 
-  <div class="panel">
-    <form method="post" enctype="multipart/form-data" id="genForm">
-      <input type="hidden" id="stored_refs" name="stored_refs" value="[]">
-
-      <div class="leftControls">
+<div class="panel">
+  <form method="post" enctype="multipart/form-data" id="gen-form">
+    <input type="hidden" id="stored_refs" name="stored_refs">
+    <div class="controls">
+      <div class="row">
         <select name="format" id="format">
           <option>1:1</option>
           <option>4:3</option>
@@ -311,6 +282,10 @@
           <option>9:16</option>
           <option>5:4</option>
           <option>4:5</option>
+          <option>7:4</option>
+          <option>4:7</option>
+          <option>5:3</option>
+          <option>3:5</option>
           <option>21:9</option>
           <option>9:21</option>
           <option>2:1</option>
@@ -319,309 +294,276 @@
           <option>1:3</option>
           <option>5:2</option>
         </select>
-
         <select name="count" id="count">
           <option value="1">1 image</option>
           <option value="2">2 images</option>
           <option value="3">3 images</option>
           <option value="4" selected>4 images</option>
         </select>
-
-        <button class="btn primary" type="submit">Generate</button>
-
-        <div class="status">
-          Status: <b id="statusText">{% if status %}{{ status }}{% else %}idle{% endif %}</b>
-          {% if error %}<div class="error">{{ error }}</div>{% endif %}
-        </div>
+        <button type="button" onclick="downloadSelected()">📦 Download selected</button>
       </div>
-
-      <div class="promptArea">
-        <div class="refRow">
-          <div class="refLabel">References</div>
-          <div id="refPreviews" class="refPreviews"></div>
-          <div class="addRef" onclick="document.getElementById('refInput').click()">+</div>
-          <input id="refInput" type="file" accept="image/*" multiple style="display:none">
-          <span style="color:var(--muted);font-size:12px;">до 10 шт</span>
-        </div>
-
-        <textarea name="prompt" id="prompt" placeholder="Describe what you want to generate... (минимум 10 символов)"></textarea>
-      </div>
-    </form>
-  </div>
-
-  <div class="modal" id="modal" onclick="closeModal(event)">
-    <div class="modalInner">
-      <div class="modalActions">
-        <a id="modalDownload" class="btn" href="#" download>⬇ Скачать</a>
-        <button class="btn" type="button" onclick="forceCloseModal()">Закрыть</button>
-      </div>
-      <img id="modalImg" class="modalImg" src="">
+      {% if status %}
+      <div class="status">Status: <span id="status">{{ status }}</span></div>
+      {% endif %}
     </div>
+
+    <div class="prompt-area">
+      <div class="ref-row">
+        <div class="ref-label">References</div>
+        <div id="ref-previews" class="ref-previews"></div>
+        <span style="color:var(--muted); font-size:13px;">Добавьте до 10 референсов</span>
+        <button type="button" class="add-ref" onclick="document.getElementById('references').click()">+</button>
+        <input id="references" type="file" name="references" accept="image/*" multiple style="display:none">
+      </div>
+
+      <textarea name="prompt" id="prompt" placeholder="Describe what you want to generate... (минимум 10 символов)"></textarea>
+      {% if error %}
+        <div class="error">{{ error }}</div>
+      {% endif %}
+      <div style="display:flex; gap:10px; justify-content:flex-end; align-items:center;">
+        <button class="primary">Generate</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="history">
+    <!-- История в отдельной сетке убрана. Галерея выше показывает все генерации; кнопка "Избранные" фильтрует их. -->
   </div>
+</div>
+
+<div id="modal" class="modal" onclick="closeModal()">
+  <img id="modal-img">
+</div>
 
 <script>
-  const jobId = "{{ job_id or '' }}";
-  const initialHistory = {{ history|tojson }};
-  const statusText = document.getElementById("statusText");
+const jobId = "{{ job_id }}";
+const initialHistory = {{ history|tojson }};
+const serverReferences = {{ references|tojson }};
+const errorMessage = "{{ error or '' }}";
+const initialCount = {{ count if count is not none else 4 }};
 
-  // ===== Favorites =====
-  const btnFav = document.getElementById("btnFav");
-  let showFavOnly = false;
+const refInput = document.getElementById("references");
+const refPreviews = document.getElementById("ref-previews");
+const storedRefsInput = document.getElementById("stored_refs");
+const promptInput = document.getElementById("prompt");
+const favTab = document.getElementById("tab-fav");
+const countSelect = document.getElementById("count");
 
-  function loadFavs(){
-    try { return JSON.parse(localStorage.getItem("nb_favs") || "[]"); } catch { return []; }
+let allImages = [];
+let showOnlyFavorites = false;
+
+function loadSavedRefs() {
+  const saved = localStorage.getItem("nb_refs");
+  if (saved) {
+    try { return JSON.parse(saved); } catch { return []; }
   }
-  function saveFavs(list){ localStorage.setItem("nb_favs", JSON.stringify(list)); }
-  function isFav(url){ return loadFavs().includes(url); }
-  function toggleFav(url){
-    const f = loadFavs();
-    if (f.includes(url)) saveFavs(f.filter(x=>x!==url));
-    else { f.push(url); saveFavs(f); }
-  }
-  function toggleFavFilter(){
-    showFavOnly = !showFavOnly;
-    btnFav.classList.toggle("active", showFavOnly);
-    renderGallery();
-  }
+  return [];
+}
 
-  // ===== References (IMPORTANT: сохраняем base64 data_url, а не blob:) =====
-  const refInput = document.getElementById("refInput");
-  const refPreviews = document.getElementById("refPreviews");
-  const storedRefs = document.getElementById("stored_refs");
+function saveRefs(list) {
+  localStorage.setItem("nb_refs", JSON.stringify(list));
+  storedRefsInput.value = JSON.stringify(list);
+}
 
-  function getRefs(){
-    try { return JSON.parse(localStorage.getItem("nb_refs") || "[]"); } catch { return []; }
-  }
-  function setRefs(list){
-    const limited = (list || []).slice(0,10);
-    localStorage.setItem("nb_refs", JSON.stringify(limited));
-    storedRefs.value = JSON.stringify(limited);
-    renderRefs(limited);
-  }
-
-  function renderRefs(list){
-    refPreviews.innerHTML = "";
-    if (!list.length){
-      const t = document.createElement("div");
-      t.style.color = "#6b7280";
-      t.style.fontSize = "12px";
-      t.innerText = "Добавьте до 10 референсов";
-      refPreviews.appendChild(t);
-      return;
-    }
-    list.forEach((r, idx)=>{
-      const chip = document.createElement("div");
-      chip.className = "refChip";
-      chip.style.backgroundImage = `url('${r.data_url}')`;
-
-      const x = document.createElement("div");
-      x.className = "x";
-      x.innerText = "×";
-      x.onclick = (e)=>{
-        e.stopPropagation();
-        const next = getRefs().filter((_,i)=>i!==idx);
-        setRefs(next);
-      };
-      chip.appendChild(x);
-      refPreviews.appendChild(chip);
-    });
-  }
-
-  async function fileToDataUrl(file){
-    return new Promise((resolve, reject)=>{
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-
-  if (refInput){
-    refInput.addEventListener("change", async ()=>{
-      const current = getRefs();
-      const files = Array.from(refInput.files || []);
-      for (const f of files){
-        if (current.length >= 10) break;
-        const dataUrl = await fileToDataUrl(f);
-        current.push({ name: f.name, data_url: dataUrl });
-      }
-      setRefs(current);
-      refInput.value = "";
-    });
-  }
-
-  // ===== Gallery from server history =====
-  let items = []; // {url, prompt, time}
-
-  function flattenHistory(hist){
-    const out = [];
-    for (const job of (hist || [])){
-      for (const url of (job.images || [])){
-        out.push({
-          url,
-          prompt: job.prompt || "",
-          time: job.time || "",
-        });
-      }
-    }
-    // новые в конце history -> делаем новые первыми
-    return out.reverse();
-  }
-
-  function renderGallery(){
-    const el = document.getElementById("images");
-    el.innerHTML = "";
-
-    let list = items;
-    if (showFavOnly) list = list.filter(x=>isFav(x.url));
-
-    if (!list.length){
-      const empty = document.createElement("div");
-      empty.style.color = "#6b7280";
-      empty.style.padding = "18px";
-      empty.innerText = "Пока нет генераций. Сгенерируй первую 👇";
-      el.appendChild(empty);
-      return;
-    }
-
-    list.forEach((it, i)=>{
-      const card = document.createElement("div");
-      card.className = "card";
-
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.className = "select";
-      cb.value = it.url;
-
-      const fav = document.createElement("button");
-      fav.type = "button";
-      fav.className = "fav control";
-      fav.innerText = isFav(it.url) ? "★" : "☆";
-      fav.onclick = (e)=>{
-        e.preventDefault();
-        toggleFav(it.url);
-        renderGallery();
-      };
-
-      const img = document.createElement("img");
-      img.src = it.url;
-      img.onclick = ()=>openModal(it.url);
-
-      const dl = document.createElement("a");
-      dl.className = "download control";
-      dl.href = it.url;
-      dl.download = `image-${i+1}.png`;
-      dl.innerText = "⬇";
-
-      const meta = document.createElement("div");
-      meta.className = "meta";
-      meta.innerHTML = `<div class="prompt">${escapeHtml(it.prompt || "Без промпта")}</div><div>${escapeHtml(it.time || "")}</div>`;
-
-      card.append(cb, fav, img, dl, meta);
-      el.appendChild(card);
-    });
-  }
-
-  function escapeHtml(s){
-    return (s||"").replace(/[&<>"']/g, m => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-    }[m]));
-  }
-
-  async function refreshHistory(){
-    const res = await fetch("/history");
-    const data = await res.json();
-    items = flattenHistory(data.history || []);
-    renderGallery();
-  }
-
-  // ===== Download selected =====
-  async function downloadSelected(){
-    const selected = [...document.querySelectorAll(".select:checked")].map(x=>x.value);
-    if (!selected.length) return alert("Выберите картинки чекбоксами");
-
-    const zip = new JSZip();
-    const folder = zip.folder("nano-banana");
-
-    for (let i=0;i<selected.length;i++){
-      const url = selected[i];
-      const resp = await fetch(url);
-      const blob = await resp.blob();
-      folder.file(`image-${i+1}.png`, blob);
-    }
-
-    const content = await zip.generateAsync({type:"blob"});
-    saveAs(content, "nano-banana.zip");
-  }
-  window.downloadSelected = downloadSelected;
-
-  // ===== Modal (открыть отдельно + скачать) =====
-  const modal = document.getElementById("modal");
-  const modalImg = document.getElementById("modalImg");
-  const modalDownload = document.getElementById("modalDownload");
-
-  function openModal(url){
-    modalImg.src = url;
-    modalDownload.href = url;
-    modalDownload.download = "nano-banana.png";
-    modal.classList.add("show");
-  }
-  function closeModal(e){
-    // закрываем только при клике по фону
-    if (e.target === modal) forceCloseModal();
-  }
-  function forceCloseModal(){
-    modal.classList.remove("show");
-    modalImg.src = "";
-  }
-  window.closeModal = closeModal;
-  window.forceCloseModal = forceCloseModal;
-
-  // ===== Polling status (FIX: останавливаемся на error) =====
-  async function checkStatus(){
-    if (!jobId) return;
-
-    const res = await fetch(`/status/${jobId}`);
-    const data = await res.json();
-
-    if (data.status === "done"){
-      statusText.innerText = "done ✅";
-      await refreshHistory();
-      return;
-    }
-
-    if (data.status === "error"){
-      statusText.innerText = "error ❌";
-      alert("Ошибка генерации: " + (data.error || "unknown"));
-      return; // ВАЖНО: не уходим в бесконечный цикл
-    }
-
-    statusText.innerText = data.status || "processing";
-    setTimeout(checkStatus, 1000);
-  }
-
-  // ===== Submit: кладём refs в hidden и валидируем prompt =====
-  const genForm = document.getElementById("genForm");
-  const prompt = document.getElementById("prompt");
-
-  genForm.addEventListener("submit", (e)=>{
-    const text = (prompt.value || "").trim();
-    if (text.length < 10){
-      e.preventDefault();
-      alert("Промпт должен содержать минимум 10 символов");
-      return false;
-    }
-    storedRefs.value = localStorage.getItem("nb_refs") || "[]";
-    statusText.innerText = "queued";
+function renderReferencePreviews(list) {
+  if (!refPreviews) return;
+  refPreviews.innerHTML = "";
+  (list || []).forEach(ref => {
+    const chip = document.createElement("div");
+    chip.className = "ref-chip";
+    chip.style.backgroundImage = `url('${ref.data_url || ref.previewUrl}')`;
+    chip.title = ref.name || "reference";
+    refPreviews.appendChild(chip);
   });
+  if (!list || !list.length) {
+    const placeholder = document.createElement("div");
+    placeholder.style.color = "#6b7280";
+    placeholder.style.fontSize = "13px";
+    placeholder.innerText = "Добавьте до 10 референсов";
+    refPreviews.appendChild(placeholder);
+  }
+}
 
-  // ===== Init =====
-  setRefs(getRefs());            // refs UI
-  items = flattenHistory(initialHistory || []);
+function mergeInitialRefs() {
+  const saved = loadSavedRefs();
+  const merged = (serverReferences && serverReferences.length) ? serverReferences : saved;
+  const limited = merged.slice(0, 10);
+  saveRefs(limited);
+  renderReferencePreviews(limited);
+}
+
+if (refInput) {
+  refInput.addEventListener("change", () => {
+    const current = loadSavedRefs();
+    const uploads = [...refInput.files].map(file => ({
+      name: file.name,
+      previewUrl: URL.createObjectURL(file)
+    }));
+    const updated = [...current, ...uploads].slice(0, 10);
+    saveRefs(updated);
+    renderReferencePreviews(updated);
+  });
+}
+
+function buildGalleryItems(historyItems) {
+  const flat = (historyItems || []).flatMap(item =>
+    (item.images || []).map(url => ({
+      url,
+      prompt: item.prompt,
+      job_id: item.job_id,
+    }))
+  );
+  // последние генерации добавляются справа в history, разворачиваем чтобы новые были первыми
+  return flat.reverse();
+}
+
+function renderGallery() {
+  const el = document.getElementById("images");
+  if (!el) return;
+  el.innerHTML = "";
+
+  const list = showOnlyFavorites ? allImages.filter(i => isFavorite(i.url)) : allImages;
+
+  list.forEach((entry, i) => {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.className = "select";
+    cb.value = entry.url;
+
+    const fav = document.createElement("button");
+    fav.className = "fav-btn control";
+    fav.innerText = isFavorite(entry.url) ? "★" : "☆";
+    fav.onclick = (e) => { e.preventDefault(); toggleFavorite(entry.url); fav.innerText = isFavorite(entry.url) ? "★" : "☆"; renderGallery(); };
+
+    const img = document.createElement("img");
+    img.src = entry.url;
+    img.alt = entry.prompt || "generated image";
+    img.onclick = () => openModal(entry.url);
+
+    const meta = document.createElement("div");
+    meta.className = "history-meta";
+    meta.innerText = entry.prompt || "Без промпта";
+
+    const dl = document.createElement("a");
+    dl.href = entry.url;
+    dl.download = `image-${i+1}.jpg`;
+    dl.className = "download control";
+    dl.innerText = "⬇";
+
+    card.append(cb,fav,img,meta,dl);
+    el.appendChild(card);
+  });
+}
+
+function setGalleryFromHistory(historyItems) {
+  allImages = buildGalleryItems(historyItems);
   renderGallery();
+}
 
-  if (jobId) checkStatus();
-  else refreshHistory();
+async function checkStatus() {
+  if (!jobId) return;
+  const res = await fetch(`/status/${jobId}`);
+  const data = await res.json();
+
+  if (data.status !== "done") {
+    setTimeout(checkStatus, 1000);
+    return;
+  }
+
+  document.getElementById("status").innerText = "done ✅";
+  await refreshHistory();
+}
+
+async function refreshHistory() {
+  const res = await fetch("/history");
+  const data = await res.json();
+  setGalleryFromHistory(data.history || []);
+}
+
+async function downloadSelected() {
+  const selected = [...document.querySelectorAll(".select:checked")].map(c=>c.value);
+  if (!selected.length) return;
+
+  const zip = new JSZip();
+  for (let i=0;i<selected.length;i++) {
+    const res = await fetch(selected[i]);
+    zip.file(`image-${i+1}.jpg`, await res.blob());
+  }
+  saveAs(await zip.generateAsync({type:"blob"}), "nano-banana.zip");
+}
+
+function openModal(url) {
+  document.getElementById("modal-img").src = url;
+  document.getElementById("modal").classList.add("show");
+}
+function closeModal() {
+  document.getElementById("modal").classList.remove("show");
+}
+
+function loadFavorites() {
+  const raw = localStorage.getItem("nb_favs");
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
+function saveFavorites(list) {
+  localStorage.setItem("nb_favs", JSON.stringify(list));
+}
+
+function isFavorite(url) {
+  return loadFavorites().includes(url);
+}
+
+function toggleFavorite(url) {
+  const favs = loadFavorites();
+  if (favs.includes(url)) {
+    saveFavorites(favs.filter(x => x !== url));
+  } else {
+    favs.push(url);
+    saveFavorites(favs);
+  }
+  renderGallery();
+}
+
+function toggleFavoritesFilter() {
+  showOnlyFavorites = !showOnlyFavorites;
+  if (showOnlyFavorites) {
+    favTab.classList.add("active");
+  } else {
+    favTab.classList.remove("active");
+  }
+  renderGallery();
+}
+
+document.getElementById("gen-form").addEventListener("submit", (e) => {
+  const val = (promptInput.value || "").trim();
+  if (val.length < 10) {
+    e.preventDefault();
+    alert("Промпт должен содержать минимум 10 символов");
+    return false;
+  }
+  storedRefsInput.value = localStorage.getItem("nb_refs") || "[]";
+});
+
+mergeInitialRefs();
+setGalleryFromHistory(initialHistory);
+if (countSelect && initialCount) {
+  countSelect.value = String(initialCount);
+}
+
+if (jobId) {
+  checkStatus();
+} else {
+  refreshHistory();
+}
+
+if (errorMessage) {
+  storedRefsInput.value = localStorage.getItem("nb_refs") || "[]";
+}
 </script>
+
 </body>
 </html>
