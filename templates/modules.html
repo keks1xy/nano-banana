@@ -15,6 +15,7 @@
       --accent:#7c3aed;
       --accent-2:#60a5fa;
       --success:#34d399;
+      --danger:#f87171;
     }
     *{box-sizing:border-box;}
     body{
@@ -39,8 +40,11 @@
       position:sticky;
       top:0;
       z-index:10;
+      gap:12px;
     }
     h1{margin:0;font-size:20px;letter-spacing:.2px;}
+    .subtext{color:var(--muted);font-size:12px;margin-top:4px;}
+    .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
     .btn{
       background:rgba(18,22,35,.8);
       color:#fff;
@@ -50,25 +54,41 @@
       cursor:pointer;
       font-weight:700;
       text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
     }
     .btn.primary{
       background:linear-gradient(135deg,#a855f7,#6366f1);
       border:none;
+      box-shadow:0 8px 18px rgba(99,102,241,.3);
     }
+    .btn.ghost{
+      background:transparent;
+      border:1px solid var(--border);
+    }
+    .btn:disabled{opacity:.6;cursor:not-allowed;}
     .workspace{
       position:relative;
-      height:calc(100vh - 76px);
+      height:calc(100vh - 96px);
       overflow:hidden;
+      background:radial-gradient(circle at 30% 20%, rgba(124,58,237,.08), transparent 25%), var(--bg);
+      border-top:1px solid rgba(255,255,255,.05);
     }
     .links{
       position:absolute;
       inset:0;
-      pointer-events:none;
+      pointer-events:auto;
       overflow:visible;
+    }
+    .content{
+      position:absolute;
+      inset:0;
+      transform-origin:0 0;
     }
     .node{
       position:absolute;
-      width:220px;
+      width:240px;
       background:var(--node);
       border:1px solid #1e2432;
       border-radius:18px;
@@ -76,13 +96,14 @@
       box-shadow:0 12px 34px rgba(0,0,0,.35);
       cursor:grab;
       user-select:none;
-      transition:box-shadow .2s ease;
+      transition:box-shadow .2s ease, border-color .2s ease;
     }
     .node:active{cursor:grabbing;box-shadow:0 12px 34px rgba(96,165,250,.25);}
     .node-header{
       display:flex;justify-content:space-between;align-items:center;
       font-weight:700;
       margin-bottom:8px;
+      gap:8px;
     }
     .badge{
       padding:4px 8px;
@@ -91,168 +112,474 @@
       background:rgba(124,58,237,.15);
       color:#c084fc;
       border:1px solid rgba(124,58,237,.4);
+      white-space:nowrap;
     }
-    .slot{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      padding:8px 10px;
-      background:rgba(255,255,255,.03);
-      border:1px dashed var(--border);
-      border-radius:12px;
-      margin-bottom:8px;
-      color:var(--muted);
-      font-size:13px;
-    }
-    .slot .dot{
-      width:10px;height:10px;border-radius:999px;
+    .handle{
+      width:14px;height:14px;border-radius:999px;
       background:var(--accent-2);
-      box-shadow:0 0 0 4px rgba(96,165,250,.16);
+      box-shadow:0 0 0 5px rgba(96,165,250,.16);
+      border:1px solid rgba(255,255,255,.2);
+      cursor:crosshair;
       flex-shrink:0;
     }
-    .slot.output .dot{
+    .handle.output{
       background:var(--success);
-      box-shadow:0 0 0 4px rgba(52,211,153,.2);
+      box-shadow:0 0 0 5px rgba(52,211,153,.18);
     }
-    .desc{color:var(--muted);font-size:12px;margin:0 0 6px;}
-    .big-slot{
-      min-height:110px;
+    .row{display:flex;align-items:center;gap:8px;margin:8px 0;}
+    .desc{color:var(--muted);font-size:12px;margin:0 0 8px;}
+    .pane{
       border:1px dashed #334155;
       background:rgba(255,255,255,.02);
       border-radius:14px;
       padding:10px;
       color:#cbd5e1;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      font-weight:600;
       margin-bottom:10px;
+      font-size:13px;
     }
-    .mini{
-      display:flex;
-      gap:6px;
-      margin-top:6px;
+    .pane img{max-width:100%;border-radius:12px;display:block;margin:6px 0;}
+    .pane .preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px;}
+    .pane .preview-grid img{width:100%;height:70px;object-fit:cover;}
+    textarea{
+      width:100%;
+      min-height:80px;
+      background:#0d111b;
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px;
+      color:#fff;
+      resize:vertical;
+      outline:none;
+      font-size:13px;
     }
-    .mini span{
+    .node-actions{
+      display:flex;justify-content:space-between;align-items:center;
+      gap:6px;margin-top:8px;
+    }
+    .chip{
       padding:6px 8px;
-      background:rgba(255,255,255,.04);
-      border:1px solid #1e2432;
+      border:1px solid var(--border);
       border-radius:10px;
       font-size:11px;
       color:#cbd5e1;
+      background:rgba(255,255,255,.04);
+    }
+    .status{
+      font-size:12px;color:var(--muted);
+      display:flex;align-items:center;gap:8px;
+    }
+    .status b{color:#fff;}
+    .toast{
+      position:absolute;left:50%;top:18px;transform:translateX(-50%);
+      background:rgba(12,15,24,.92);
+      border:1px solid var(--border);
+      padding:10px 14px;
+      border-radius:12px;
+      color:#e5e7eb;
+      font-weight:700;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+      display:none;
+      z-index:15;
+    }
+    .palette{
+      display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    }
+    select{
+      background:rgba(18,22,35,.85);
+      color:#fff;
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px 12px;
+      font-weight:600;
+      cursor:pointer;
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>Модули</h1>
-    <div style="display:flex;gap:10px;">
+    <div>
+      <h1>Модули</h1>
+      <div class="subtext">5 блоков: Фото • Текст • Нано Банана • Результат • (доп. вход)</div>
+    </div>
+    <div class="controls">
+      <div class="palette">
+        <select id="addType">
+          <option value="photo">Фото</option>
+          <option value="text">Текст</option>
+          <option value="result">Результат</option>
+        </select>
+        <button class="btn ghost" id="addBtn" type="button">+ Добавить блок</button>
+      </div>
+      <div class="controls">
+        <button class="btn ghost" id="zoomOut" type="button">-</button>
+        <button class="btn ghost" id="zoomReset" type="button">100%</button>
+        <button class="btn ghost" id="zoomIn" type="button">+</button>
+      </div>
+      <button class="btn primary" id="runBtn" type="button">Run workflow</button>
       <a class="btn" href="/">← Назад</a>
-      <button class="btn primary" type="button">Run workflow</button>
     </div>
   </header>
 
   <div class="workspace" id="workspace">
+    <div class="toast" id="toast"></div>
     <svg class="links" id="links"></svg>
+    <div class="content" id="content"></div>
   </div>
 
   <script>
     const workspace = document.getElementById("workspace");
     const linksSvg = document.getElementById("links");
+    const content = document.getElementById("content");
+    const runBtn = document.getElementById("runBtn");
+    const toast = document.getElementById("toast");
+    const addBtn = document.getElementById("addBtn");
+    const addType = document.getElementById("addType");
+    const zoomIn = document.getElementById("zoomIn");
+    const zoomOut = document.getElementById("zoomOut");
+    const zoomReset = document.getElementById("zoomReset");
 
-    const nodes = [
-      { id:"text", title:"Text", badge:"Input", desc:"Write something...", x:260, y:40 },
-      { id:"image", title:"Image", badge:"Input", desc:"Add file", x:80, y:220 },
-      { id:"copy1", title:"Image Copy", badge:"Input", desc:"Add or connect an image to view", x:80, y:380 },
-      { id:"copy2", title:"Image Copy", badge:"Input", desc:"Add file", x:80, y:540 },
-      { id:"nano", title:"Nano Banana Pro", badge:"Model", desc:"Results will appear here", x:420, y:260, settings:true },
-      { id:"output", title:"Output", badge:"Image", desc:"A beautiful sunset over a calm ocean", x:740, y:260 },
-      { id:"video", title:"Kling ai", badge:"Video", desc:"A beautiful sunset over a calm ocean", x:740, y:470 }
+    const nodeDefs = {
+      photo: { label:"Фото", badge:"Input", color:"#60a5fa" },
+      text: { label:"Текст", badge:"Prompt", color:"#c084fc" },
+      nano: { label:"Нано Банана", badge:"Генератор", color:"#22d3ee" },
+      result: { label:"Результат", badge:"Output", color:"#34d399" },
+    };
+
+    let nodes = [
+      { id:"photo-1", type:"photo", x:60, y:200, images:[] },
+      { id:"text-1", type:"text", x:60, y:60, prompt:"" },
+      { id:"nano-1", type:"nano", x:380, y:160, status:"idle" },
+      { id:"result-1", type:"result", x:700, y:180, images:[] },
     ];
 
-    const connections = [
-      ["image","nano"],
-      ["copy1","nano"],
-      ["copy2","nano"],
-      ["text","nano"],
-      ["nano","output"],
-      ["output","video"]
+    let connections = [
+      { from:"photo-1", to:"nano-1" },
+      { from:"text-1", to:"nano-1" },
+      { from:"nano-1", to:"result-1" },
     ];
 
-    function createNodeEl(node){
+    let pendingFrom = null;
+    let view = { scale:1, x:0, y:0 };
+    let dragNode = null;
+    let dragOffset = {x:0,y:0};
+    let isPanning = false;
+    let panStart = {x:0,y:0};
+    let panOrigin = {x:0,y:0};
+
+    const maxNodes = 5;
+    let idCounter = 2;
+
+    function showToast(msg){
+      toast.innerText = msg;
+      toast.style.display = "block";
+      setTimeout(()=>toast.style.display="none", 1800);
+    }
+
+    function worldPoint(clientX, clientY){
+      const rect = workspace.getBoundingClientRect();
+      const x = (clientX - rect.left - view.x) / view.scale;
+      const y = (clientY - rect.top - view.y) / view.scale;
+      return {x,y};
+    }
+
+    function applyTransform(){
+      content.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.scale})`;
+      drawLinks();
+    }
+
+    function clampScale(s){
+      return Math.min(1.6, Math.max(0.6, s));
+    }
+
+    function zoomAt(delta, clientX, clientY){
+      const prev = view.scale;
+      const next = clampScale(view.scale * (delta > 0 ? 0.9 : 1.1));
+      if (next === prev) return;
+      const rect = workspace.getBoundingClientRect();
+      const cx = clientX - rect.left;
+      const cy = clientY - rect.top;
+      view.x = cx - ((cx - view.x) * next / prev);
+      view.y = cy - ((cy - view.y) * next / prev);
+      view.scale = next;
+      applyTransform();
+    }
+
+    workspace.addEventListener("wheel", (e)=>{
+      e.preventDefault();
+      zoomAt(e.deltaY, e.clientX, e.clientY);
+    }, { passive:false });
+
+    zoomIn.onclick = ()=>zoomAt(-1, workspace.clientWidth/2, workspace.clientHeight/2);
+    zoomOut.onclick = ()=>zoomAt(1, workspace.clientWidth/2, workspace.clientHeight/2);
+    zoomReset.onclick = ()=>{
+      view = { scale:1, x:0, y:0 };
+      applyTransform();
+    };
+
+    workspace.addEventListener("pointerdown", (e)=>{
+      if (e.target.closest(".node")) return;
+      isPanning = true;
+      panStart = {x:e.clientX, y:e.clientY};
+      panOrigin = {x:view.x, y:view.y};
+      workspace.setPointerCapture(e.pointerId);
+    });
+    window.addEventListener("pointermove", (e)=>{
+      if (!isPanning) return;
+      view.x = panOrigin.x + (e.clientX - panStart.x);
+      view.y = panOrigin.y + (e.clientY - panStart.y);
+      applyTransform();
+    });
+    window.addEventListener("pointerup", (e)=>{
+      isPanning = false;
+      try{ workspace.releasePointerCapture(e.pointerId);}catch{}
+    });
+
+    function isValidConnection(fromNode, toNode){
+      if (!fromNode || !toNode) return false;
+      if (fromNode.id === toNode.id) return false;
+      if (toNode.type === "photo" || toNode.type === "text") return false;
+      if (fromNode.type === "result") return false;
+      if (toNode.type === "nano"){
+        return fromNode.type === "photo" || fromNode.type === "text";
+      }
+      if (toNode.type === "result"){
+        return fromNode.type === "nano";
+      }
+      return false;
+    }
+
+    function addConnection(fromId, toId){
+      const a = nodes.find(n=>n.id===fromId);
+      const b = nodes.find(n=>n.id===toId);
+      if (!isValidConnection(a,b)) return showToast("Неверное соединение");
+      if (connections.find(c=>c.from===fromId && c.to===toId)) return;
+      connections.push({from:fromId, to:toId});
+      drawLinks();
+    }
+
+    function startConnection(nodeId){
+      pendingFrom = nodeId;
+      showToast("Выберите вход для соединения");
+    }
+
+    function finishConnection(nodeId){
+      if (!pendingFrom) return;
+      if (pendingFrom === nodeId){
+        pendingFrom = null;
+        return;
+      }
+      addConnection(pendingFrom, nodeId);
+      pendingFrom = null;
+    }
+
+    function removeConnection(idx){
+      connections.splice(idx,1);
+      drawLinks();
+    }
+
+    function removeNode(id){
+      const node = nodes.find(n=>n.id===id);
+      if (!node) return;
+      if (node.type === "nano"){
+        showToast("Должен быть хотя бы один генератор");
+        return;
+      }
+      if (node.type === "result" && nodes.filter(n=>n.type==="result").length <=1){
+        showToast("Нужен минимум один блок результата");
+        return;
+      }
+      nodes = nodes.filter(n=>n.id!==id);
+      connections = connections.filter(c=>c.from!==id && c.to!==id);
+      renderNodes();
+    }
+
+    function handleDrag(el, node){
+      el.addEventListener("pointerdown", (e)=>{
+        if (e.target.closest("textarea") || e.target.closest("input")) return;
+        dragNode = node;
+        const world = worldPoint(e.clientX, e.clientY);
+        dragOffset = { x: world.x - node.x, y: world.y - node.y };
+        el.setPointerCapture(e.pointerId);
+      });
+    }
+
+    window.addEventListener("pointermove", (e)=>{
+      if (!dragNode) return;
+      const world = worldPoint(e.clientX, e.clientY);
+      dragNode.x = world.x - dragOffset.x;
+      dragNode.y = world.y - dragOffset.y;
+      renderNodes(false);
+    });
+    window.addEventListener("pointerup", (e)=>{
+      dragNode = null;
+    });
+
+    function nodeTemplate(node){
+      const def = nodeDefs[node.type];
       const el = document.createElement("div");
       el.className = "node";
       el.dataset.node = node.id;
       el.style.left = node.x + "px";
       el.style.top = node.y + "px";
+      el.style.borderColor = def.color + "44";
 
-      el.innerHTML = `
-        <div class="node-header">
-          <div>${node.title}</div>
-          <div class="badge">${node.badge}</div>
-        </div>
-        <p class="desc">${node.desc}</p>
-        <div class="big-slot">Drop or connect input</div>
-        <div class="slot"><span class="dot"></span>Receiving input</div>
-        <div class="slot"><span class="dot output"></span>Output</div>
-        ${node.settings ? `
-          <div class="mini">
-            <span>Aspect ratio 1:1</span>
-            <span>Resolution 1K</span>
-            <span>Image Prompting</span>
-          </div>
-        ` : ""}
-      `;
+      const header = document.createElement("div");
+      header.className = "node-header";
+      header.innerHTML = `<div>${def.label}</div><div class="badge">${def.badge}</div>`;
 
-      enableDrag(el, node);
-      workspace.appendChild(el);
+      const handles = document.createElement("div");
+      handles.className = "row";
+
+      if (node.type !== "photo" && node.type !== "text"){
+        const input = document.createElement("div");
+        input.className = "handle input";
+        input.title = "Вход";
+        input.addEventListener("click", ()=>finishConnection(node.id));
+        handles.appendChild(input);
+      } else {
+        const spacer = document.createElement("div");
+        spacer.style.width = "14px";
+        handles.appendChild(spacer);
+      }
+
+      const filler = document.createElement("div");
+      filler.style.flex = "1";
+      handles.appendChild(filler);
+
+      if (node.type !== "result"){
+        const output = document.createElement("div");
+        output.className = "handle output";
+        output.title = "Выход";
+        output.addEventListener("click", ()=>startConnection(node.id));
+        handles.appendChild(output);
+      }
+
+      el.appendChild(header);
+      el.appendChild(handles);
+
+      if (node.type === "photo"){
+        const pane = document.createElement("div");
+        pane.className = "pane";
+        pane.innerHTML = `
+          <div class="desc">Добавь до 3 референсов</div>
+          <input type="file" accept="image/*" multiple style="display:none">
+          <button class="btn ghost" type="button">Загрузить</button>
+          <div class="preview-grid"></div>
+        `;
+        const input = pane.querySelector("input");
+        const btn = pane.querySelector("button");
+        const grid = pane.querySelector("div.preview-grid");
+        btn.onclick = ()=>input.click();
+        input.addEventListener("change", async ()=>{
+          const files = Array.from(input.files || []).slice(0,3);
+          const urls = [];
+          for (const f of files){
+            urls.push(await fileToDataUrl(f));
+          }
+          node.images = urls;
+          renderNodes(false);
+        });
+        node.images = node.images || [];
+        grid.innerHTML = "";
+        node.images.forEach(url=>{
+          const img = document.createElement("img");
+          img.src = url;
+          grid.appendChild(img);
+        });
+        el.appendChild(pane);
+      }
+
+      if (node.type === "text"){
+        const pane = document.createElement("div");
+        pane.className = "pane";
+        pane.innerHTML = `<div class="desc">Промпт попадёт в Нано Банану</div>`;
+        const ta = document.createElement("textarea");
+        ta.value = node.prompt || "";
+        ta.placeholder = "Опиши идею...";
+        ta.addEventListener("input", ()=>{ node.prompt = ta.value; });
+        pane.appendChild(ta);
+        el.appendChild(pane);
+      }
+
+      if (node.type === "nano"){
+        const pane = document.createElement("div");
+        pane.className = "pane";
+        pane.innerHTML = `
+          <div class="status">Статус: <b>${node.status || "idle"}</b></div>
+          <div class="chip">Принимает: Фото + Текст</div>
+          <div class="chip">Отдаёт: Результат</div>
+        `;
+        el.appendChild(pane);
+      }
+
+      if (node.type === "result"){
+        const pane = document.createElement("div");
+        pane.className = "pane";
+        pane.innerHTML = `<div class="desc">Результаты генерации</div>`;
+        const grid = document.createElement("div");
+        grid.className = "preview-grid";
+        (node.images || []).forEach(url=>{
+          const img = document.createElement("img");
+          img.src = url;
+          grid.appendChild(img);
+        });
+        if (!grid.children.length){
+          const empty = document.createElement("div");
+          empty.style.color = "#6b7280";
+          empty.style.fontSize = "12px";
+          empty.innerText = "Пока пусто";
+          pane.appendChild(empty);
+        } else {
+          pane.appendChild(grid);
+        }
+        el.appendChild(pane);
+      }
+
+      const actions = document.createElement("div");
+      actions.className = "node-actions";
+      const idLabel = document.createElement("div");
+      idLabel.className = "chip";
+      idLabel.innerText = node.id;
+      const del = document.createElement("button");
+      del.className = "btn ghost";
+      del.type = "button";
+      del.textContent = "Удалить";
+      del.onclick = ()=>removeNode(node.id);
+      actions.append(idLabel, del);
+      el.appendChild(actions);
+
+      handleDrag(el, node);
       return el;
     }
 
-    function enableDrag(el, node){
-      let active = false;
-      let offsetX = 0;
-      let offsetY = 0;
+    async function fileToDataUrl(file){
+      return new Promise((resolve, reject)=>{
+        const reader = new FileReader();
+        reader.onload = ()=>resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
 
-      const start = (e)=>{
-        active = true;
-        el.setPointerCapture(e.pointerId);
-        const rect = el.getBoundingClientRect();
-        offsetX = e.clientX - rect.left;
-        offsetY = e.clientY - rect.top;
-      };
-
-      const move = (e)=>{
-        if (!active) return;
-        const bounds = workspace.getBoundingClientRect();
-        node.x = e.clientX - bounds.left - offsetX;
-        node.y = e.clientY - bounds.top - offsetY;
-        el.style.left = node.x + "px";
-        el.style.top = node.y + "px";
-        drawLinks();
-      };
-
-      const end = (e)=>{
-        active = false;
-        el.releasePointerCapture(e.pointerId);
-      };
-
-      el.addEventListener("pointerdown", start);
-      window.addEventListener("pointermove", move);
-      window.addEventListener("pointerup", end);
+    function renderNodes(redrawLinks=true){
+      content.innerHTML = "";
+      nodes.forEach(node=>{
+        const el = nodeTemplate(node);
+        content.appendChild(el);
+      });
+      if (redrawLinks) drawLinks();
     }
 
     function drawLinks(){
       linksSvg.innerHTML = "";
       const bounds = workspace.getBoundingClientRect();
 
-      connections.forEach(([from,to])=>{
-        const a = document.querySelector(`[data-node="${from}"]`);
-        const b = document.querySelector(`[data-node="${to}"]`);
-        if (!a || !b) return;
-        const ra = a.getBoundingClientRect();
-        const rb = b.getBoundingClientRect();
+      connections.forEach((c, idx)=>{
+        const fromEl = document.querySelector(`[data-node="${c.from}"] .handle.output`);
+        const toEl = document.querySelector(`[data-node="${c.to}"] .handle.input`);
+        if (!fromEl || !toEl) return;
+        const ra = fromEl.getBoundingClientRect();
+        const rb = toEl.getBoundingClientRect();
         const startX = ra.left + ra.width/2 - bounds.left;
         const startY = ra.top + ra.height/2 - bounds.top;
         const endX = rb.left + rb.width/2 - bounds.left;
@@ -261,18 +588,89 @@
         const path = document.createElementNS("http://www.w3.org/2000/svg","path");
         path.setAttribute("d", `M ${startX} ${startY} C ${startX+dx} ${startY}, ${endX-dx} ${endY}, ${endX} ${endY}`);
         path.setAttribute("fill","none");
-        path.setAttribute("stroke","rgba(96,165,250,.75)");
-        path.setAttribute("stroke-width","3");
+        path.setAttribute("stroke","rgba(96,165,250,.85)");
+        path.setAttribute("stroke-width","4");
         path.setAttribute("stroke-linecap","round");
         path.setAttribute("stroke-dasharray","6 4");
+        path.style.cursor = "pointer";
+        path.addEventListener("click", ()=>removeConnection(idx));
         linksSvg.appendChild(path);
       });
     }
 
-    nodes.forEach(createNodeEl);
-    drawLinks();
+    function addNode(type){
+      if (nodes.length >= maxNodes) return showToast("Максимум 5 блоков");
+      const def = nodeDefs[type];
+      if (!def) return;
+      const id = `${type}-${idCounter++}`;
+      const base = { id, type, x:100 + nodes.length*30, y:100 + nodes.length*30 };
+      if (type === "photo") base.images = [];
+      if (type === "text") base.prompt = "";
+      if (type === "result") base.images = [];
+      nodes.push(base);
+      renderNodes();
+    }
 
-    const resizeObserver = new ResizeObserver(drawLinks);
+    addBtn.onclick = ()=>addNode(addType.value);
+
+    function incomingNodes(targetId, filterType){
+      const ids = connections.filter(c=>c.to===targetId).map(c=>c.from);
+      return nodes.filter(n=>ids.includes(n.id) && (!filterType || n.type===filterType));
+    }
+
+    async function runWorkflow(){
+      const nano = nodes.find(n=>n.type==="nano");
+      if (!nano){
+        showToast("Нет блока генератора");
+        return;
+      }
+      const textInputs = incomingNodes(nano.id, "text");
+      const photoInputs = incomingNodes(nano.id, "photo");
+      const prompt = textInputs.map(n=>n.prompt || "").join("\n").trim();
+      const refs = photoInputs.flatMap(n=>n.images || []).map(url=>({data_url:url})).slice(0,10);
+
+      if (!prompt){
+        showToast("Добавьте промпт в блок ТЕКСТ");
+        return;
+      }
+
+      runBtn.disabled = true;
+      nano.status = "processing";
+      renderNodes();
+
+      try{
+        const res = await fetch("/api/generate_flow", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({ prompt, references: refs, count: 1 })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error){
+          throw new Error(data.error || "Ошибка генерации");
+        }
+        nano.status = "done";
+        const results = data.images || [];
+        nodes.filter(n=>n.type==="result").forEach(r=>{
+          const hasLink = connections.find(c=>c.from===nano.id && c.to===r.id);
+          if (hasLink) r.images = results;
+        });
+        renderNodes();
+        showToast("Готово!");
+      }catch(err){
+        nano.status = "error";
+        renderNodes();
+        showToast(err.message);
+      }finally{
+        runBtn.disabled = false;
+      }
+    }
+
+    runBtn.onclick = runWorkflow;
+
+    renderNodes();
+    applyTransform();
+
+    const resizeObserver = new ResizeObserver(()=>drawLinks());
     resizeObserver.observe(workspace);
   </script>
 </body>
