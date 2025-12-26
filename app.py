@@ -3,230 +3,214 @@ import base64
 import json
 import os
 import threading
+import time
 import uuid
 
 from google import genai
 
 app = Flask(__name__)
 
-client = genai.Client()  # ключ берётся из переменной окружения GEMINI_API_KEY
+# Берёт ключ из переменной окружения GEMINI_API_KEY
+# Railway: Variables -> GEMINI_API_KEY
+client = genai.Client()
 
-jobs = {}  # job_id -> dict
-history = []  # list of completed jobs
+# In-memory storage (после рестарта Railway история обнуляется — это нормально без БД)
+jobs = {}      # job_id -> dict(status, images, prompt, format, count, error)
+history = []   # list of completed jobs
+lock = threading.Lock()
 
 
-def call_gemini_api(prompt, aspect_ratio="1:1", references=None, count=4):
-    contents = [prompt or ""]
+def _parse_data_url(data_url: str):
+    """
+    data:image/png;base64,AAAA...
+    -> (mime, base64data)
+    """
+    if not data_url or "," not in data_url:
+        return None, None
+    head, b64 = data_url.split(",", 1)
+    mime = "image/png"
+    if head.startswith("data:") and ";base64" in head:
+        mime = head[5:].split(";base64", 1)[0] or "image/png"
+    return mime, b64
+
+
+def call_gemini_image(prompt: str, references=None, count: int = 4):
+    """
+    Возвращает список data:image/...;base64,... (до 4 шт)
+    """
+    # Собираем contents: текст + inline images
+    contents = [{"text": (prompt or "").strip()}]
 
     if references:
-        for ref in references:
-            data_url = ref.get("data_url") or ""
-            if "," not in data_url:
+        for ref in references[:10]:
+            data_url = ref.get("data_url", "")
+            mime, b64 = _parse_data_url(data_url)
+            if not mime or not b64:
                 continue
-            _, data = data_url.split(",", 1)
-            contents.append(
-                {
-                    "inline_data": {
-                        "mime_type": "image/png",
-                        "data": data,
-                    }
+            contents.append({
+                "inline_data": {
+                    "mime_type": mime,
+                    "data": b64
                 }
-            )
+            })
 
+    # Модель для image preview (если у тебя другая — поменяй здесь)
     response = client.models.generate_content(
         model="gemini-2.5-flash-image-preview",
         contents=contents,
     )
 
     images = []
-    candidate = response.candidates[0].content.parts if response.candidates else []
-    for part in candidate:
-        if getattr(part, "inline_data", None):
-            images.append(f"data:image/png;base64,{part.inline_data.data}")
+    candidates = getattr(response, "candidates", []) or []
+    if not candidates:
+        raise RuntimeError("Gemini: empty candidates")
+
+    parts = getattr(candidates[0].content, "parts", []) or []
+    for part in parts:
+        inline = getattr(part, "inline_data", None)
+        if inline and getattr(inline, "data", None):
+            # inline.data обычно уже base64-строка
+            data = inline.data
+            if isinstance(data, (bytes, bytearray)):
+                data = base64.b64encode(data).decode("utf-8")
+            mime = getattr(inline, "mime_type", None) or "image/png"
+            images.append(f"data:{mime};base64,{data}")
 
     if not images:
-        raise RuntimeError("No images returned from Gemini")
+        raise RuntimeError("Gemini: no images in response")
 
-    return images[: max(1, min(count, 4))]
+    count = max(1, min(int(count or 4), 4))
+    return images[:count]
 
 
-def worker(job_id, prompt, format, references, count):
+def worker(job_id: str):
+    with lock:
+        job = jobs.get(job_id)
+        if not job:
+            return
+        job["status"] = "processing"
+        job["error"] = None
+
     try:
-        jobs[job_id]["status"] = "processing"
-
-        images = call_gemini_api(
-            prompt=prompt,
-            aspect_ratio=format,
-            references=references,
-            count=count,
+        images = call_gemini_image(
+            prompt=job.get("prompt", ""),
+            references=job.get("references", []),
+            count=job.get("count", 4),
         )
 
-        jobs[job_id]["status"] = "done"
-        jobs[job_id]["images"] = images
-        history.append(
-            {
+        with lock:
+            job["status"] = "done"
+            job["images"] = images
+
+            history.append({
                 "job_id": job_id,
-                "prompt": prompt,
-                "format": format,
+                "time": time.strftime("%d.%m.%Y, %H:%M:%S"),
+                "prompt": job.get("prompt", ""),
+                "format": job.get("format", "1:1"),   # формат сейчас как метка UI
+                "count": job.get("count", 4),
                 "images": images,
-                "references": jobs[job_id].get("references", []),
-                "status": jobs[job_id]["status"],
-            }
-        )
+            })
 
-    except Exception:
-        jobs[job_id]["status"] = "error"
-        jobs[job_id]["images"] = []
+            # чуть ограничим историю, чтобы не раздувалась
+            if len(history) > 50:
+                history[:] = history[-50:]
 
-
-def create_job(prompt, format, references, count):
-    job_id = str(uuid.uuid4())
-    jobs[job_id] = {
-        "status": "queued",
-        "images": [],
-        "prompt": prompt or "",
-        "format": format or "",
-        "references": references,
-        "count": count,
-    }
-
-    t = threading.Thread(
-        target=worker,
-        args=(job_id, prompt, format, references, count),
-        daemon=True,
-    )
-    t.start()
-    return job_id
+    except Exception as e:
+        with lock:
+            job["status"] = "error"
+            job["images"] = []
+            job["error"] = str(e)
 
 
 @app.route("/", methods=["GET", "POST"])
 def home():
     job_id = None
     status = None
-    references = []
     error = None
-    count = 4
 
     if request.method == "POST":
-        prompt = request.form.get("prompt")
-        format = request.form.get("format")
-        files = request.files.getlist("references")
+        prompt = (request.form.get("prompt") or "").strip()
+        fmt = (request.form.get("format") or "1:1").strip()
         count_raw = request.form.get("count") or "4"
+
         try:
             count = int(count_raw)
         except Exception:
             count = 4
         count = max(1, min(count, 4))
+
+        # stored_refs — приходит из JS, там base64 data_url
         stored_refs_raw = request.form.get("stored_refs") or "[]"
-
         try:
-            references = json.loads(stored_refs_raw)
+            refs = json.loads(stored_refs_raw)
+            if not isinstance(refs, list):
+                refs = []
         except Exception:
-            references = []
+            refs = []
 
-        for file in files:
-            if not file:
-                continue
+        # ограничение на 10
+        refs = refs[:10]
 
-            encoded = base64.b64encode(file.read()).decode("utf-8")
-            mime = file.mimetype or "application/octet-stream"
-            references.append(
-                {
-                    "name": file.filename or "reference",
-                    "data_url": f"data:{mime};base64,{encoded}",
-                }
-            )
-
-        if not prompt or len(prompt.strip()) < 10:
+        if len(prompt) < 10:
             error = "Промпт должен содержать минимум 10 символов"
             return render_template(
                 "index.html",
                 job_id=None,
                 status=None,
-                references=references,
-                history=history,
                 error=error,
                 count=count,
+                history=history
             )
 
-        job_id = create_job(prompt, format, references, count)
+        job_id = str(uuid.uuid4())
+        with lock:
+            jobs[job_id] = {
+                "status": "queued",
+                "images": [],
+                "prompt": prompt,
+                "format": fmt,
+                "count": count,
+                "references": refs,
+                "error": None
+            }
 
-    if job_id:
-        status = jobs[job_id]["status"]
+        t = threading.Thread(target=worker, args=(job_id,), daemon=True)
+        t.start()
+
+        status = "queued"
 
     return render_template(
         "index.html",
         job_id=job_id,
         status=status,
-        references=references,
-        history=history,
         error=error,
-        count=count,
+        count=4,
+        history=history
     )
 
 
 @app.route("/status/<job_id>")
 def job_status(job_id):
-    job = jobs.get(job_id)
+    with lock:
+        job = jobs.get(job_id)
 
-    if not job:
-        return {"status": "unknown", "images": []}
+        if not job:
+            return jsonify({"status": "unknown", "images": [], "error": "job not found"})
 
-    return {
-        "status": job["status"],
-        "images": job.get("images", []),
-        "prompt": job.get("prompt", ""),
-        "format": job.get("format", ""),
-        "references": job.get("references", []),
-        "count": job.get("count", 4),
-    }
+        return jsonify({
+            "status": job.get("status"),
+            "images": job.get("images", []),
+            "error": job.get("error"),
+            "prompt": job.get("prompt", ""),
+            "format": job.get("format", "1:1"),
+            "count": job.get("count", 4),
+        })
 
 
 @app.route("/history")
 def job_history():
-    return {"history": history}
-
-
-@app.route("/api/generate", methods=["POST"])
-def api_generate():
-    prompt = request.form.get("prompt")
-    format = request.form.get("format") or "1:1"
-    files = request.files.getlist("references")
-    count_raw = request.form.get("count") or "4"
-    try:
-        count = int(count_raw)
-    except Exception:
-        count = 4
-    count = max(1, min(count, 4))
-    stored_refs_raw = request.form.get("stored_refs") or "[]"
-
-    try:
-        references = json.loads(stored_refs_raw)
-    except Exception:
-        references = []
-
-    for file in files:
-        if not file:
-            continue
-        encoded = base64.b64encode(file.read()).decode("utf-8")
-        mime = file.mimetype or "application/octet-stream"
-        references.append(
-            {
-                "name": file.filename or "reference",
-                "data_url": f"data:{mime};base64,{encoded}",
-            }
-        )
-
-    if not prompt or len(prompt.strip()) < 10:
-        return jsonify({"error": "Промпт должен содержать минмум 10 символов"}), 400
-
-    job_id = create_job(prompt, format, references, count)
-    return jsonify({"job_id": job_id, "status": "queued"})
-
-
-@app.route("/editor")
-def editor():
-    return render_template("editor.html")
+    with lock:
+        return jsonify({"history": history})
 
 
 if __name__ == "__main__":
