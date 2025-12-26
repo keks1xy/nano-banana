@@ -317,7 +317,7 @@
     };
 
     workspace.addEventListener("pointerdown", (e)=>{
-      if (e.target.closest(".node")) return;
+      if (e.target.closest(".node") || e.target.closest(".links")) return;
       isPanning = true;
       panStart = {x:e.clientX, y:e.clientY};
       panOrigin = {x:view.x, y:view.y};
@@ -395,7 +395,12 @@
 
     function handleDrag(el, node){
       el.addEventListener("pointerdown", (e)=>{
-        if (e.target.closest("textarea") || e.target.closest("input")) return;
+        if (
+          e.target.closest("textarea") ||
+          e.target.closest("input") ||
+          e.target.closest(".btn") ||
+          e.target.closest(".handle")
+        ) return;
         dragNode = node;
         const world = worldPoint(e.clientX, e.clientY);
         dragOffset = { x: world.x - node.x, y: world.y - node.y };
@@ -468,7 +473,7 @@
         `;
         const input = pane.querySelector("input");
         const btn = pane.querySelector("button");
-        const grid = pane.querySelector("div.preview-grid");
+        const grid = pane.querySelector(".preview-grid");
         btn.onclick = ()=>input.click();
         input.addEventListener("change", async ()=>{
           const files = Array.from(input.files || []).slice(0,3);
@@ -612,6 +617,7 @@
     }
 
     addBtn.onclick = ()=>addNode(addType.value);
+    addType.onchange = ()=>addType.blur();
 
     function incomingNodes(targetId, filterType){
       const ids = connections.filter(c=>c.to===targetId).map(c=>c.from);
