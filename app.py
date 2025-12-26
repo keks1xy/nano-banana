@@ -12,7 +12,16 @@ app = Flask(__name__)
 
 # Берёт ключ из переменной окружения GEMINI_API_KEY
 # Railway: Variables -> GEMINI_API_KEY
-client = genai.Client()
+client = None
+
+
+def _client():
+    global client
+    if client is None:
+        if not os.environ.get("GEMINI_API_KEY"):
+            raise RuntimeError("GEMINI_API_KEY is не задан")
+        client = genai.Client()
+    return client
 
 # In-memory storage (после рестарта Railway история обнуляется — это нормально без БД)
 jobs = {}      # job_id -> dict(status, images, prompt, format, count, error)
@@ -55,7 +64,7 @@ def call_gemini_image(prompt: str, references=None, count: int = 4):
             })
 
     # Модель для image preview (если у тебя другая — поменяй здесь)
-    response = client.models.generate_content(
+    response = _client().models.generate_content(
         model="gemini-2.5-flash-image-preview",
         contents=contents,
     )
@@ -104,7 +113,7 @@ def worker(job_id: str):
 
             history.append({
                 "job_id": job_id,
-                "time": time.strftime("%d.%m.%Y, %H:%M:%S"),
+                "time": time.strftime("%d.%m.%Y, %H:%М:%S"),
                 "prompt": job.get("prompt", ""),
                 "format": job.get("format", "1:1"),   # формат сейчас как метка UI
                 "count": job.get("count", 4),
@@ -212,31 +221,6 @@ def job_history():
     with lock:
         return jsonify({"history": history})
 
-
-app.route("/api/generate_flow", methods=["POST"])
-def api_generate_flow():
-    data = request.get_json(silent=True) or {}
-    prompt = (data.get("prompt") or "").strip()
-    references = data.get("references", []) or []
-    count = data.get("count") or 1
-
-    if len(prompt) < 3:
-        return jsonify({"error": "Промпт должен содержать минимум 3 символа"}), 400
-
-    if not isinstance(references, list):
-        references = []
-    references = references[:10]
-
-    try:
-        images = call_gemini_image(prompt=prompt, references=references, count=count)
-        return jsonify({"status": "ok", "images": images})
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
-
-
-@app.route("/modules")
-def modules():
-    return render_template("modules.html")
 
 @app.route("/api/generate_flow", methods=["POST"])
 def api_generate_flow():
