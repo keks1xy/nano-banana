@@ -206,6 +206,7 @@
         <select id="addType">
           <option value="photo">Фото</option>
           <option value="text">Текст</option>
+          <option value="nano">Нано Банана</option>
           <option value="result">Результат</option>
         </select>
         <button class="btn ghost" id="addBtn" type="button">+ Добавить блок</button>
@@ -439,7 +440,7 @@
         const input = document.createElement("div");
         input.className = "handle input";
         input.title = "Вход";
-        input.addEventListener("click", ()=>finishConnection(node.id));
+        input.addEventListener("click", (e)=>{ e.stopPropagation(); finishConnection(node.id); });
         handles.appendChild(input);
       } else {
         const spacer = document.createElement("div");
@@ -455,7 +456,7 @@
         const output = document.createElement("div");
         output.className = "handle output";
         output.title = "Выход";
-        output.addEventListener("click", ()=>startConnection(node.id));
+        output.addEventListener("click", (e)=>{ e.stopPropagation(); startConnection(node.id); });
         handles.appendChild(output);
       }
 
@@ -474,8 +475,9 @@
         const input = pane.querySelector("input");
         const btn = pane.querySelector("button");
         const grid = pane.querySelector(".preview-grid");
-        btn.onclick = ()=>input.click();
-        input.addEventListener("change", async ()=>{
+        btn.onclick = (e)=>{ e.stopPropagation(); input.click(); };
+        input.addEventListener("change", async (e)=>{
+          e.stopPropagation();
           const files = Array.from(input.files || []).slice(0,3);
           const urls = [];
           for (const f of files){
@@ -549,7 +551,7 @@
       del.className = "btn ghost";
       del.type = "button";
       del.textContent = "Удалить";
-      del.onclick = ()=>removeNode(node.id);
+      del.onclick = (e)=>{ e.stopPropagation(); removeNode(node.id); };
       actions.append(idLabel, del);
       el.appendChild(actions);
 
@@ -566,12 +568,17 @@
       });
     }
 
+    function updateAddAvailability(){
+      addBtn.disabled = nodes.length >= maxNodes;
+    }
+
     function renderNodes(redrawLinks=true){
       content.innerHTML = "";
       nodes.forEach(node=>{
         const el = nodeTemplate(node);
         content.appendChild(el);
       });
+      updateAddAvailability();
       if (redrawLinks) drawLinks();
     }
 
