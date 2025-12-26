@@ -113,7 +113,7 @@ def worker(job_id: str):
 
             history.append({
                 "job_id": job_id,
-                "time": time.strftime("%d.%m.%Y, %H:%М:%S"),
+                "time": time.strftime("%d.%m.%Y, %H:%M:%S"),
                 "prompt": job.get("prompt", ""),
                 "format": job.get("format", "1:1"),   # формат сейчас как метка UI
                 "count": job.get("count", 4),
