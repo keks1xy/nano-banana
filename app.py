@@ -213,6 +213,31 @@ def job_history():
         return jsonify({"history": history})
 
 
+app.route("/api/generate_flow", methods=["POST"])
+def api_generate_flow():
+    data = request.get_json(silent=True) or {}
+    prompt = (data.get("prompt") or "").strip()
+    references = data.get("references", []) or []
+    count = data.get("count") or 1
+
+    if len(prompt) < 3:
+        return jsonify({"error": "Промпт должен содержать минимум 3 символа"}), 400
+
+    if not isinstance(references, list):
+        references = []
+    references = references[:10]
+
+    try:
+        images = call_gemini_image(prompt=prompt, references=references, count=count)
+        return jsonify({"status": "ok", "images": images})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.route("/modules")
+def modules():
+    return render_template("modules.html")
+
 @app.route("/api/generate_flow", methods=["POST"])
 def api_generate_flow():
     data = request.get_json(silent=True) or {}
