@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Модули • Nano Banana</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+  <style>
+    :root{
+      --bg:#05070d;
+      --panel:#0d111b;
+      --node:#121623;
+      --border:#1f2430;
+      --muted:#9ca3af;
+      --text:#e5e7eb;
+      --accent:#7c3aed;
+      --accent-2:#60a5fa;
+      --success:#34d399;
+    }
+    *{box-sizing:border-box;}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(124,58,237,.15), transparent 35%),
+        radial-gradient(circle at 80% 30%, rgba(34,197,94,.10), transparent 40%),
+        radial-gradient(circle at 50% 80%, rgba(59,130,246,.12), transparent 35%),
+        var(--bg);
+      min-height:100vh;
+      overflow:hidden;
+    }
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:16px 24px;
+      background:linear-gradient(135deg, rgba(12,15,24,0.95), rgba(10,12,20,0.95));
+      border-bottom:1px solid var(--border);
+      position:sticky;
+      top:0;
+      z-index:10;
+    }
+    h1{margin:0;font-size:20px;letter-spacing:.2px;}
+    .btn{
+      background:rgba(18,22,35,.8);
+      color:#fff;
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px 12px;
+      cursor:pointer;
+      font-weight:700;
+      text-decoration:none;
+    }
+    .btn.primary{
+      background:linear-gradient(135deg,#a855f7,#6366f1);
+      border:none;
+    }
+    .workspace{
+      position:relative;
+      height:calc(100vh - 76px);
+      overflow:hidden;
+    }
+    .links{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      overflow:visible;
+    }
+    .node{
+      position:absolute;
+      width:220px;
+      background:var(--node);
+      border:1px solid #1e2432;
+      border-radius:18px;
+      padding:12px;
+      box-shadow:0 12px 34px rgba(0,0,0,.35);
+      cursor:grab;
+      user-select:none;
+      transition:box-shadow .2s ease;
+    }
+    .node:active{cursor:grabbing;box-shadow:0 12px 34px rgba(96,165,250,.25);}
+    .node-header{
+      display:flex;justify-content:space-between;align-items:center;
+      font-weight:700;
+      margin-bottom:8px;
+    }
+    .badge{
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:11px;
+      background:rgba(124,58,237,.15);
+      color:#c084fc;
+      border:1px solid rgba(124,58,237,.4);
+    }
+    .slot{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      background:rgba(255,255,255,.03);
+      border:1px dashed var(--border);
+      border-radius:12px;
+      margin-bottom:8px;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .slot .dot{
+      width:10px;height:10px;border-radius:999px;
+      background:var(--accent-2);
+      box-shadow:0 0 0 4px rgba(96,165,250,.16);
+      flex-shrink:0;
+    }
+    .slot.output .dot{
+      background:var(--success);
+      box-shadow:0 0 0 4px rgba(52,211,153,.2);
+    }
+    .desc{color:var(--muted);font-size:12px;margin:0 0 6px;}
+    .big-slot{
+      min-height:110px;
+      border:1px dashed #334155;
+      background:rgba(255,255,255,.02);
+      border-radius:14px;
+      padding:10px;
+      color:#cbd5e1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      font-weight:600;
+      margin-bottom:10px;
+    }
+    .mini{
+      display:flex;
+      gap:6px;
+      margin-top:6px;
+    }
+    .mini span{
+      padding:6px 8px;
+      background:rgba(255,255,255,.04);
+      border:1px solid #1e2432;
+      border-radius:10px;
+      font-size:11px;
+      color:#cbd5e1;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Модули</h1>
+    <div style="display:flex;gap:10px;">
+      <a class="btn" href="/">← Назад</a>
+      <button class="btn primary" type="button">Run workflow</button>
+    </div>
+  </header>
+
+  <div class="workspace" id="workspace">
+    <svg class="links" id="links"></svg>
+  </div>
+
+  <script>
+    const workspace = document.getElementById("workspace");
+    const linksSvg = document.getElementById("links");
+
+    const nodes = [
+      { id:"text", title:"Text", badge:"Input", desc:"Write something...", x:260, y:40 },
+      { id:"image", title:"Image", badge:"Input", desc:"Add file", x:80, y:220 },
+      { id:"copy1", title:"Image Copy", badge:"Input", desc:"Add or connect an image to view", x:80, y:380 },
+      { id:"copy2", title:"Image Copy", badge:"Input", desc:"Add file", x:80, y:540 },
+      { id:"nano", title:"Nano Banana Pro", badge:"Model", desc:"Results will appear here", x:420, y:260, settings:true },
+      { id:"output", title:"Output", badge:"Image", desc:"A beautiful sunset over a calm ocean", x:740, y:260 },
+      { id:"video", title:"Kling ai", badge:"Video", desc:"A beautiful sunset over a calm ocean", x:740, y:470 }
+    ];
+
+    const connections = [
+      ["image","nano"],
+      ["copy1","nano"],
+      ["copy2","nano"],
+      ["text","nano"],
+      ["nano","output"],
+      ["output","video"]
+    ];
+
+    function createNodeEl(node){
+      const el = document.createElement("div");
+      el.className = "node";
+      el.dataset.node = node.id;
+      el.style.left = node.x + "px";
+      el.style.top = node.y + "px";
+
+      el.innerHTML = `
+        <div class="node-header">
+          <div>${node.title}</div>
+          <div class="badge">${node.badge}</div>
+        </div>
+        <p class="desc">${node.desc}</p>
+        <div class="big-slot">Drop or connect input</div>
+        <div class="slot"><span class="dot"></span>Receiving input</div>
+        <div class="slot"><span class="dot output"></span>Output</div>
+        ${node.settings ? `
+          <div class="mini">
+            <span>Aspect ratio 1:1</span>
+            <span>Resolution 1K</span>
+            <span>Image Prompting</span>
+          </div>
+        ` : ""}
+      `;
+
+      enableDrag(el, node);
+      workspace.appendChild(el);
+      return el;
+    }
+
+    function enableDrag(el, node){
+      let active = false;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      const start = (e)=>{
+        active = true;
+        el.setPointerCapture(e.pointerId);
+        const rect = el.getBoundingClientRect();
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+      };
+
+      const move = (e)=>{
+        if (!active) return;
+        const bounds = workspace.getBoundingClientRect();
+        node.x = e.clientX - bounds.left - offsetX;
+        node.y = e.clientY - bounds.top - offsetY;
+        el.style.left = node.x + "px";
+        el.style.top = node.y + "px";
+        drawLinks();
+      };
+
+      const end = (e)=>{
+        active = false;
+        el.releasePointerCapture(e.pointerId);
+      };
+
+      el.addEventListener("pointerdown", start);
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", end);
+    }
+
+    function drawLinks(){
+      linksSvg.innerHTML = "";
+      const bounds = workspace.getBoundingClientRect();
+
+      connections.forEach(([from,to])=>{
+        const a = document.querySelector(`[data-node="${from}"]`);
+        const b = document.querySelector(`[data-node="${to}"]`);
+        if (!a || !b) return;
+        const ra = a.getBoundingClientRect();
+        const rb = b.getBoundingClientRect();
+        const startX = ra.left + ra.width/2 - bounds.left;
+        const startY = ra.top + ra.height/2 - bounds.top;
+        const endX = rb.left + rb.width/2 - bounds.left;
+        const endY = rb.top + rb.height/2 - bounds.top;
+        const dx = (endX - startX) * 0.4;
+        const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+        path.setAttribute("d", `M ${startX} ${startY} C ${startX+dx} ${startY}, ${endX-dx} ${endY}, ${endX} ${endY}`);
+        path.setAttribute("fill","none");
+        path.setAttribute("stroke","rgba(96,165,250,.75)");
+        path.setAttribute("stroke-width","3");
+        path.setAttribute("stroke-linecap","round");
+        path.setAttribute("stroke-dasharray","6 4");
+        linksSvg.appendChild(path);
+      });
+    }
+
+    nodes.forEach(createNodeEl);
+    drawLinks();
+
+    const resizeObserver = new ResizeObserver(drawLinks);
+    resizeObserver.observe(workspace);
+  </script>
+</body>
+</html>
