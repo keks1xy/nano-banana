@@ -213,5 +213,10 @@ def job_history():
         return jsonify({"history": history})
 
 
+@app.route("/modules")
+def modules():
+    return render_template("modules.html")
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
